@@ -5,6 +5,7 @@ using System.Threading;
 using System.Xml;
 using System.Security;
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization.Json
 {
     internal class JsonCollectionDataContract : JsonDataContract
@@ -30,12 +31,7 @@ namespace System.Runtime.Serialization.Json
                     {
                         if (_helper.JsonFormatReaderDelegate == null)
                         {
-#if !NET_NATIVE && MERGE_DCJS
-                            JsonFormatCollectionReaderDelegate tempDelegate = new JsonFormatReaderGenerator().GenerateCollectionReader(TraditionalCollectionDataContract);
-                            Interlocked.MemoryBarrier();
-#else
                             JsonFormatCollectionReaderDelegate tempDelegate = JsonDataContract.GetReadWriteDelegatesFromGeneratedAssembly(TraditionalCollectionDataContract).CollectionReaderDelegate;
-#endif
                             _helper.JsonFormatReaderDelegate = tempDelegate;
                         }
                     }
@@ -60,12 +56,7 @@ namespace System.Runtime.Serialization.Json
                             {
                                 throw new InvalidDataContractException(SR.Format(SR.GetOnlyCollectionMustHaveAddMethod, DataContract.GetClrTypeFullName(this.TraditionalDataContract.UnderlyingType)));
                             }
-#if !NET_NATIVE && MERGE_DCJS
-                            JsonFormatGetOnlyCollectionReaderDelegate tempDelegate = new JsonFormatReaderGenerator().GenerateGetOnlyCollectionReader(TraditionalCollectionDataContract);
-                            Interlocked.MemoryBarrier();
-#else
                             JsonFormatGetOnlyCollectionReaderDelegate tempDelegate = JsonDataContract.GetReadWriteDelegatesFromGeneratedAssembly(TraditionalCollectionDataContract).GetOnlyCollectionReaderDelegate;
-#endif
                             _helper.JsonFormatGetOnlyReaderDelegate = tempDelegate;
                         }
                     }
@@ -85,12 +76,7 @@ namespace System.Runtime.Serialization.Json
                     {
                         if (_helper.JsonFormatWriterDelegate == null)
                         {
-#if !NET_NATIVE && MERGE_DCJS
-                            JsonFormatCollectionWriterDelegate tempDelegate = new JsonFormatWriterGenerator().GenerateCollectionWriter(TraditionalCollectionDataContract);
-                            Interlocked.MemoryBarrier();
-#else
                             JsonFormatCollectionWriterDelegate tempDelegate = JsonDataContract.GetReadWriteDelegatesFromGeneratedAssembly(TraditionalCollectionDataContract).CollectionWriterDelegate;
-#endif
                             _helper.JsonFormatWriterDelegate = tempDelegate;
                         }
                     }
@@ -169,3 +155,4 @@ namespace System.Runtime.Serialization.Json
         }
     }
 }
+#endif

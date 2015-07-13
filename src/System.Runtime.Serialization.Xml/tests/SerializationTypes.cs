@@ -1613,17 +1613,6 @@ namespace SerializationTypes
         DecimalNumber
     }
 
-    public class TypeWithAnyAttribute
-    {
-        public string Name;
-
-        [XmlAttribute]
-        public int IntProperty { get; set; }
-
-        [XmlAnyAttribute]
-        public XmlAttribute[] Attributes { get; set; }
-    }
-
     public class KnownTypesThroughConstructor
     {
         public object EnumValue;
@@ -2129,22 +2118,4 @@ public class TypeWithNonParameterlessConstructor
     {
         StringProperty = value;
     }
-}
-
-[DataContract]
-public class AppEnvironment
-{
-    [DataMember(Name = "screen:orientation")]
-    public string ScreenOrientation { get; set; }
-
-    [DataMember(Name = "screen_dpi(x:y)")]
-    public int ScreenDpi { get; set; }
-}
-
-public class TypeWithBinaryProperty
-{
-    [XmlElement(DataType = "hexBinary")]
-    public byte[] BinaryHexContent { get; set; }
-    [XmlElement(DataType = "base64Binary")]
-    public byte[] Base64Content { get; set; }
 }

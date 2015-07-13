@@ -22,8 +22,7 @@ namespace System.IO.FileSystem.Tests
         [Fact]
         public void NegativeReadRootThrows()
         {
-            Assert.Throws<UnauthorizedAccessException>(() =>
-                new FileStream(Path.GetPathRoot(Directory.GetCurrentDirectory()), FileMode.Open, FileAccess.Read));
+            Assert.Throws<UnauthorizedAccessException>(() => { new FileStream("\\", FileMode.Open, FileAccess.Read); });
         }
 
         [Fact]

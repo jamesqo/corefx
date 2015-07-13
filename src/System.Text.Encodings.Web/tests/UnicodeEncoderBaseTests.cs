@@ -17,9 +17,7 @@ namespace Microsoft.Framework.WebEncoders
         public void Ctor_WithCustomFilters()
         {
             // Arrange
-            var filter = new TextEncoderSettings();
-            filter.AllowCharacters('a', 'b');
-            filter.AllowCharacters('\0', '&', '\uFFFF', 'd');
+            var filter = new CodePointFilter().AllowCharacters("ab").AllowCharacters('\0', '&', '\uFFFF', 'd');
             UnicodeEncoderBase encoder = new CustomUnicodeEncoderBase(filter);
 
             // Act & assert
@@ -36,7 +34,7 @@ namespace Microsoft.Framework.WebEncoders
         public void Ctor_WithUnicodeRanges()
         {
             // Arrange
-            UnicodeEncoderBase encoder = new CustomUnicodeEncoderBase(new TextEncoderSettings(UnicodeRanges.Latin1Supplement, UnicodeRanges.MiscellaneousSymbols));
+            UnicodeEncoderBase encoder = new CustomUnicodeEncoderBase(new CodePointFilter(UnicodeRanges.Latin1Supplement, UnicodeRanges.MiscellaneousSymbols));
 
             // Act & assert
             Assert.Equal("[U+0061]", encoder.Encode("a"));
@@ -370,16 +368,16 @@ namespace Microsoft.Framework.WebEncoders
             return (0xD800 <= codePoint && codePoint <= 0xDFFF);
         }
 
-        private sealed class CustomTextEncoderSettings : TextEncoderSettings
+        private sealed class CustomCodePointFilter : ICodePointFilter
         {
             private readonly int[] _allowedCodePoints;
 
-            public CustomTextEncoderSettings(params int[] allowedCodePoints)
+            public CustomCodePointFilter(params int[] allowedCodePoints)
             {
                 _allowedCodePoints = allowedCodePoints;
             }
 
-            public override IEnumerable<int> GetAllowedCodePoints()
+            public IEnumerable<int> GetAllowedCodePoints()
             {
                 return _allowedCodePoints;
             }
@@ -390,13 +388,13 @@ namespace Microsoft.Framework.WebEncoders
             // We pass a (known bad) value of 1 for 'max output chars per input char',
             // which also tests that the code behaves properly even if the original
             // estimate is incorrect.
-            public CustomUnicodeEncoderBase(TextEncoderSettings filter)
+            public CustomUnicodeEncoderBase(CodePointFilter filter)
                 : base(filter, maxOutputCharsPerInputChar: 1)
             {
             }
 
             public CustomUnicodeEncoderBase(params UnicodeRange[] allowedRanges)
-                : this(new TextEncoderSettings(allowedRanges))
+                : this(new CodePointFilter(allowedRanges))
             {
             }
 

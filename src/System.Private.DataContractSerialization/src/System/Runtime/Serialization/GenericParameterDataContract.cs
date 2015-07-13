@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Security;
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization
 {
     internal sealed class GenericParameterDataContract : DataContract
@@ -57,3 +58,4 @@ namespace System.Runtime.Serialization
         }
     }
 }
+#endif

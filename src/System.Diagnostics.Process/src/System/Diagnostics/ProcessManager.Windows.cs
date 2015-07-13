@@ -229,6 +229,7 @@ namespace System.Diagnostics
         static NtProcessManager()
         {
             s_valueIds = new Dictionary<String, ValueId>();
+            s_valueIds.Add("Handle Count", ValueId.HandleCount);
             s_valueIds.Add("Pool Paged Bytes", ValueId.PoolPagedBytes);
             s_valueIds.Add("Pool Nonpaged Bytes", ValueId.PoolNonpagedBytes);
             s_valueIds.Add("Elapsed Time", ValueId.ElapsedTime);
@@ -740,6 +741,9 @@ namespace System.Diagnostics
                     case ValueId.ProcessId:
                         processInfo.ProcessId = (int)value;
                         break;
+                    case ValueId.HandleCount:
+                        processInfo.HandleCount = (int)value;
+                        break;
                     case ValueId.PoolPagedBytes:
                         processInfo.PoolPagedBytes = value;
                         break;
@@ -798,6 +802,7 @@ namespace System.Diagnostics
         enum ValueId
         {
             Unknown = -1,
+            HandleCount,
             PoolPagedBytes,
             PoolNonpagedBytes,
             ElapsedTime,
@@ -945,6 +950,7 @@ namespace System.Diagnostics
                 ProcessInfo processInfo = new ProcessInfo();
                 // Process ID shouldn't overflow. OS API GetCurrentProcessID returns DWORD.
                 processInfo.ProcessId = pi.UniqueProcessId.ToInt32();
+                processInfo.HandleCount = (int)pi.HandleCount;
                 processInfo.SessionId = (int)pi.SessionId;
                 processInfo.PoolPagedBytes = (long)pi.QuotaPagedPoolUsage; ;
                 processInfo.PoolNonPagedBytes = (long)pi.QuotaNonPagedPoolUsage;

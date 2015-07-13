@@ -40,11 +40,6 @@ namespace System.Security.Cryptography.X509Certificates
         {
         }
 
-        internal X509Certificate2(ICertificatePal pal)
-            : base(pal)
-        {
-        }
-
         public X509Certificate2(String fileName)
             : base(fileName)
         {

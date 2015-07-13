@@ -17,12 +17,10 @@ namespace Microsoft.Framework.WebEncoders
         private static UTF8Encoding _utf8EncodingThrowOnInvalidBytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
         [Fact]
-        public void Ctor_WithTextEncoderSettings()
+        public void Ctor_WithCodePointFilter()
         {
             // Arrange
-            var filter = new TextEncoderSettings();
-            filter.AllowCharacters('a', 'b');
-            filter.AllowCharacters('\0', '&', '\uFFFF', 'd');
+            var filter = new CodePointFilter().AllowCharacters("ab").AllowCharacters('\0', '&', '\uFFFF', 'd');
             UrlEncoder encoder = new UrlEncoder(filter);
 
             // Act & assert

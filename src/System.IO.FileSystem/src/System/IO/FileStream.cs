@@ -89,22 +89,22 @@ namespace System.IO
             {
                 if (mode == FileMode.Truncate || mode == FileMode.CreateNew || mode == FileMode.Create || mode == FileMode.Append)
                 {
-                    // No write access, mode and access disagree but flag access since mode comes first
-                    throw new ArgumentException(SR.Format(SR.Argument_InvalidFileModeAndAccessCombo, mode, access), "access");
+                    // No write access
+                    throw new ArgumentException(SR.Format(SR.Argument_InvalidFileModeAndAccessCombo, mode, access));
                 }
             }
 
             string fullPath = PathHelpers.GetFullPathInternal(path);
 
-            ValidatePath(fullPath, "path");
+            ValidatePath(fullPath);
 
             if ((access & FileAccess.Read) != 0 && mode == FileMode.Append)
-                throw new ArgumentException(SR.Argument_InvalidAppendMode, "access");
+                throw new ArgumentException(SR.Argument_InvalidAppendMode);
 
             this._innerStream = FileSystem.Current.Open(fullPath, mode, access, share, bufferSize, options, this);
         }
 
-        static partial void ValidatePath(string fullPath, string paramName);
+        static partial void ValidatePath(string fullPath);
 
         // InternalOpen, InternalCreate, and InternalAppend:
         // Factory methods for FileStream used by File, FileInfo, and ReadLinesIterator
@@ -230,7 +230,7 @@ namespace System.IO
             if (count < 0)
                 throw new ArgumentOutOfRangeException("count", SR.ArgumentOutOfRange_NeedNonNegNum);
             if (buffer.Length - offset < count)
-                throw new ArgumentException(SR.Argument_InvalidOffLen /*, no good single parameter name to pass*/);
+                throw new ArgumentException(SR.Argument_InvalidOffLen);
             Contract.EndContractBlock();
 
             // If we have been inherited into a subclass, the following implementation could be incorrect
@@ -272,7 +272,7 @@ namespace System.IO
             if (count < 0)
                 throw new ArgumentOutOfRangeException("count", SR.ArgumentOutOfRange_NeedNonNegNum);
             if (buffer.Length - offset < count)
-                throw new ArgumentException(SR.Argument_InvalidOffLen /*, no good single parameter name to pass*/);
+                throw new ArgumentException(SR.Argument_InvalidOffLen);
             Contract.EndContractBlock();
 
             // If we have been inherited into a subclass, the following implementation could be incorrect

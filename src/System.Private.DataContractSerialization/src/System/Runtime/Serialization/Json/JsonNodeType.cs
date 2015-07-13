@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization.Json
 {
     internal enum JsonNodeType
@@ -14,3 +15,4 @@ namespace System.Runtime.Serialization.Json
         Collection
     }
 }
+#endif

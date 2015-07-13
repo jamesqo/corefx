@@ -38,7 +38,7 @@ namespace System.Reflection.Metadata
             // the reader performs little-endian specific operations
             if (!BitConverter.IsLittleEndian)
             {
-                throw new PlatformNotSupportedException(SR.LitteEndianArchitectureRequired);
+                throw new PlatformNotSupportedException(MetadataResources.LitteEndianArchitectureRequired);
             }
 
             this = new BlobReader(new MemoryBlock(buffer, length));
@@ -128,7 +128,7 @@ namespace System.Reflection.Metadata
         {
             if (!TryAlign(alignment))
             {
-                Throw.OutOfBounds();
+                ThrowOutOfBounds();
             }
         }
 
@@ -160,12 +160,18 @@ namespace System.Reflection.Metadata
 
         #region Bounds Checking
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowOutOfBounds()
+        {
+            throw new BadImageFormatException(MetadataResources.OutOfBoundsRead);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CheckBounds(int offset, int byteCount)
         {
             if (unchecked((ulong)(uint)offset + (uint)byteCount) > (ulong)(_endPointer - _currentPointer))
             {
-                Throw.OutOfBounds();
+                ThrowOutOfBounds();
             }
         }
 
@@ -174,7 +180,7 @@ namespace System.Reflection.Metadata
         {
             if (unchecked((uint)byteCount) > (_endPointer - _currentPointer))
             {
-                Throw.OutOfBounds();
+                ThrowOutOfBounds();
             }
         }
 
@@ -185,7 +191,7 @@ namespace System.Reflection.Metadata
 
             if (unchecked((uint)length) > (uint)(_endPointer - p))
             {
-                Throw.OutOfBounds();
+                ThrowOutOfBounds();
             }
 
             _currentPointer = p + length;
@@ -199,7 +205,7 @@ namespace System.Reflection.Metadata
 
             if (p == _endPointer)
             {
-                Throw.OutOfBounds();
+                ThrowOutOfBounds();
             }
 
             _currentPointer = p + 1;
@@ -353,7 +359,7 @@ namespace System.Reflection.Metadata
             int value;
             if (!TryReadCompressedInteger(out value))
             {
-                Throw.InvalidCompressedInteger();
+                ThrowInvalidCompressedInteger();
             }
             return value;
         }
@@ -409,9 +415,21 @@ namespace System.Reflection.Metadata
             int value;
             if (!TryReadCompressedSignedInteger(out value))
             {
-                Throw.InvalidCompressedInteger();
+                ThrowInvalidCompressedInteger();
             }
             return value;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowInvalidCompressedInteger()
+        {
+            throw new BadImageFormatException(MetadataResources.InvalidCompressedInteger);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowInvalidSerializedString()
+        {
+            throw new BadImageFormatException(MetadataResources.InvalidSerializedString);
         }
 
         /// <summary>
@@ -472,7 +490,7 @@ namespace System.Reflection.Metadata
 
             if (ReadByte() != 0xFF)
             {
-                Throw.InvalidSerializedString();
+                ThrowInvalidSerializedString();
             }
 
             return null;

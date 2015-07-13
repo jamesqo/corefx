@@ -74,24 +74,21 @@ public class DirectoryInfo_ToString
 
             strLoc = "Loc_298yb";
 
-            if (Interop.IsWindows) // whitespace-only names are valid on Unix
+            iCountTestcases++;
+            try
             {
-                iCountTestcases++;
-                try
-                {
-                    dir = new DirectoryInfo("      ");
-                    dir.Create();
-                    iCountErrors++;
-                    printerr("Error_09rux! Expected exception not thrown, dir==" + dir.ToString());
-                }
-                catch (ArgumentException)
-                {
-                }
-                catch (Exception exc)
-                {
-                    iCountErrors++;
-                    printerr("Bug 14866 Error_4577c! Incorrect exception thrown, exc==" + exc.ToString());
-                }
+                dir = new DirectoryInfo("      ");
+                dir.Create();
+                iCountErrors++;
+                printerr("Error_09rux! Expected exception not thrown, dir==" + dir.ToString());
+            }
+            catch (ArgumentException)
+            {
+            }
+            catch (Exception exc)
+            {
+                iCountErrors++;
+                printerr("Bug 14866 Error_4577c! Incorrect exception thrown, exc==" + exc.ToString());
             }
 
             // [] Go for same dir
@@ -129,7 +126,6 @@ public class DirectoryInfo_ToString
             Console.WriteLine("FAiL! " + s_strTFName + " ,iCountErrors==" + iCountErrors.ToString());
         }
 
-        FailSafeDirectoryOperations.DeleteDirectory(dirName, true);
         Assert.Equal(0, iCountErrors);
     }
 

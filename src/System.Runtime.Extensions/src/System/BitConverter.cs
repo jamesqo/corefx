@@ -1,7 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Diagnostics;
+/*============================================================
+**
+** Class:  BitConverter
+**
+**
+** Purpose: Allows developers to view the base data types as 
+**          an arbitrary array of bits.
+**
+** 
+===========================================================*/
+
+using System;
+using System.Runtime.CompilerServices;
 using System.Diagnostics.Contracts;
 using System.Security;
 
@@ -11,6 +23,8 @@ namespace System
     // converting an array of bytes to one of the base data 
     // types, as well as for converting a base data type to an
     // array of bytes.
+    // 
+    // Only statics, does not need to be marked with the serializable attribute
     public static class BitConverter
     {
         // This field indicates the "endianess" of the architecture.
@@ -22,7 +36,7 @@ namespace System
         public static readonly bool IsLittleEndian = true;
 #endif
 
-        // Converts a Boolean into an array of bytes with length one.
+        // Converts a byte into an array of bytes with length one.
         public static byte[] GetBytes(bool value)
         {
             Contract.Ensures(Contract.Result<byte[]>() != null);
@@ -143,11 +157,19 @@ namespace System
         public static char ToChar(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+            {
+                throw new ArgumentNullException("value");
+            }
+
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+            {
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
+            }
+
             if (startIndex > value.Length - 2)
-                ThrowValueArgumentTooSmall();
+            {
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
+            }
             Contract.EndContractBlock();
 
             return (char)ToInt16(value, startIndex);
@@ -158,27 +180,37 @@ namespace System
         public static unsafe short ToInt16(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+            {
+                throw new ArgumentNullException("value");
+            }
+
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+            {
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
+            }
+
             if (startIndex > value.Length - 2)
-                ThrowValueArgumentTooSmall();
+            {
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
+            }
             Contract.EndContractBlock();
 
             fixed (byte* pbyte = &value[startIndex])
             {
                 if (startIndex % 2 == 0)
-                {
-                    // data is aligned 
+                { // data is aligned 
                     return *((short*)pbyte);
-                }
-                else if (IsLittleEndian)
-                {
-                    return (short)((*pbyte) | (*(pbyte + 1) << 8));
                 }
                 else
                 {
-                    return (short)((*pbyte << 8) | (*(pbyte + 1)));
+                    if (IsLittleEndian)
+                    {
+                        return (short)((*pbyte) | (*(pbyte + 1) << 8));
+                    }
+                    else
+                    {
+                        return (short)((*pbyte << 8) | (*(pbyte + 1)));
+                    }
                 }
             }
         }
@@ -188,27 +220,37 @@ namespace System
         public static unsafe int ToInt32(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+            {
+                throw new ArgumentNullException("value");
+            }
+
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+            {
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
+            }
+
             if (startIndex > value.Length - 4)
-                ThrowValueArgumentTooSmall();
+            {
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
+            }
             Contract.EndContractBlock();
 
             fixed (byte* pbyte = &value[startIndex])
             {
                 if (startIndex % 4 == 0)
-                {
-                    // data is aligned 
+                { // data is aligned 
                     return *((int*)pbyte);
-                }
-                else if (IsLittleEndian)
-                {
-                    return (*pbyte) | (*(pbyte + 1) << 8) | (*(pbyte + 2) << 16) | (*(pbyte + 3) << 24);
                 }
                 else
                 {
-                    return (*pbyte << 24) | (*(pbyte + 1) << 16) | (*(pbyte + 2) << 8) | (*(pbyte + 3));
+                    if (IsLittleEndian)
+                    {
+                        return (*pbyte) | (*(pbyte + 1) << 8) | (*(pbyte + 2) << 16) | (*(pbyte + 3) << 24);
+                    }
+                    else
+                    {
+                        return (*pbyte << 24) | (*(pbyte + 1) << 16) | (*(pbyte + 2) << 8) | (*(pbyte + 3));
+                    }
                 }
             }
         }
@@ -218,31 +260,41 @@ namespace System
         public static unsafe long ToInt64(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+            {
+                throw new ArgumentNullException("value");
+            }
+
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+            {
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
+            }
+
             if (startIndex > value.Length - 8)
-                ThrowValueArgumentTooSmall();
+            {
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
+            }
             Contract.EndContractBlock();
 
             fixed (byte* pbyte = &value[startIndex])
             {
                 if (startIndex % 8 == 0)
-                { 
-                    // data is aligned 
+                { // data is aligned 
                     return *((long*)pbyte);
-                }
-                else if (IsLittleEndian)
-                {
-                    int i1 = (*pbyte) | (*(pbyte + 1) << 8) | (*(pbyte + 2) << 16) | (*(pbyte + 3) << 24);
-                    int i2 = (*(pbyte + 4)) | (*(pbyte + 5) << 8) | (*(pbyte + 6) << 16) | (*(pbyte + 7) << 24);
-                    return (uint)i1 | ((long)i2 << 32);
                 }
                 else
                 {
-                    int i1 = (*pbyte << 24) | (*(pbyte + 1) << 16) | (*(pbyte + 2) << 8) | (*(pbyte + 3));
-                    int i2 = (*(pbyte + 4) << 24) | (*(pbyte + 5) << 16) | (*(pbyte + 6) << 8) | (*(pbyte + 7));
-                    return (uint)i2 | ((long)i1 << 32);
+                    if (IsLittleEndian)
+                    {
+                        int i1 = (*pbyte) | (*(pbyte + 1) << 8) | (*(pbyte + 2) << 16) | (*(pbyte + 3) << 24);
+                        int i2 = (*(pbyte + 4)) | (*(pbyte + 5) << 8) | (*(pbyte + 6) << 16) | (*(pbyte + 7) << 24);
+                        return (uint)i1 | ((long)i2 << 32);
+                    }
+                    else
+                    {
+                        int i1 = (*pbyte << 24) | (*(pbyte + 1) << 16) | (*(pbyte + 2) << 8) | (*(pbyte + 3));
+                        int i2 = (*(pbyte + 4) << 24) | (*(pbyte + 5) << 16) | (*(pbyte + 6) << 8) | (*(pbyte + 7));
+                        return (uint)i2 | ((long)i1 << 32);
+                    }
                 }
             }
         }
@@ -254,11 +306,11 @@ namespace System
         public static ushort ToUInt16(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+                throw new ArgumentNullException("value");
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
             if (startIndex > value.Length - 2)
-                ThrowValueArgumentTooSmall();
+                throw new ArgumentOutOfRangeException(SR.Arg_ArrayPlusOffTooSmall);
             Contract.EndContractBlock();
 
             return (ushort)ToInt16(value, startIndex);
@@ -270,11 +322,11 @@ namespace System
         public static uint ToUInt32(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+                throw new ArgumentNullException("value");
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
             if (startIndex > value.Length - 4)
-                ThrowValueArgumentTooSmall();
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
             Contract.EndContractBlock();
 
             return (uint)ToInt32(value, startIndex);
@@ -286,11 +338,11 @@ namespace System
         public static ulong ToUInt64(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+                throw new ArgumentNullException("value");
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
             if (startIndex > value.Length - 8)
-                ThrowValueArgumentTooSmall();
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
             Contract.EndContractBlock();
 
             return (ulong)ToInt64(value, startIndex);
@@ -298,14 +350,14 @@ namespace System
 
         // Converts an array of bytes into a float.  
         [System.Security.SecuritySafeCritical]  // auto-generated
-        public unsafe static float ToSingle(byte[] value, int startIndex)
+        unsafe public static float ToSingle(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+                throw new ArgumentNullException("value");
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
             if (startIndex > value.Length - 4)
-                ThrowValueArgumentTooSmall();
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
             Contract.EndContractBlock();
 
             int val = ToInt32(value, startIndex);
@@ -314,14 +366,14 @@ namespace System
 
         // Converts an array of bytes into a double.  
         [System.Security.SecuritySafeCritical]  // auto-generated
-        public unsafe static double ToDouble(byte[] value, int startIndex)
+        unsafe public static double ToDouble(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+                throw new ArgumentNullException("value");
             if ((uint)startIndex >= value.Length)
-                ThrowStartIndexArgumentOutOfRange();
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
             if (startIndex > value.Length - 8)
-                ThrowValueArgumentTooSmall();
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
             Contract.EndContractBlock();
 
             long val = ToInt64(value, startIndex);
@@ -330,7 +382,7 @@ namespace System
 
         private static char GetHexValue(int i)
         {
-            Debug.Assert(i >= 0 && i < 16, "i is out of range.");
+            Contract.Assert(i >= 0 && i < 16, "i is out of range.");
             if (i < 10)
             {
                 return (char)(i + '0');
@@ -340,16 +392,27 @@ namespace System
         }
 
         // Converts an array of bytes into a String.  
-        public static string ToString(byte[] value, int startIndex, int length)
+        public static String ToString(byte[] value, int startIndex, int length)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+            {
+                throw new ArgumentNullException("byteArray");
+            }
+
             if (startIndex < 0 || startIndex >= value.Length && startIndex > 0)
-                ThrowStartIndexArgumentOutOfRange();
+            {  // Don't throw for a 0 length array.
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_StartIndex);
+            }
+
             if (length < 0)
+            {
                 throw new ArgumentOutOfRangeException("length", SR.ArgumentOutOfRange_GenericPositive);
+            }
+
             if (startIndex > value.Length - length)
-                ThrowValueArgumentTooSmall();
+            {
+                throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
+            }
             Contract.EndContractBlock();
 
             if (length == 0)
@@ -357,10 +420,10 @@ namespace System
                 return string.Empty;
             }
 
-            if (length > (int.MaxValue / 3))
+            if (length > (Int32.MaxValue / 3))
             {
                 // (Int32.MaxValue / 3) == 715,827,882 Bytes == 699 MB
-                throw new ArgumentOutOfRangeException("length", SR.Format(SR.ArgumentOutOfRange_LengthTooLarge, (int.MaxValue / 3)));
+                throw new ArgumentOutOfRangeException("length", SR.Format(SR.ArgumentOutOfRange_LengthTooLarge, (Int32.MaxValue / 3)));
             }
 
             int chArrayLength = length * 3;
@@ -377,25 +440,25 @@ namespace System
             }
 
             // We don't need the last '-' character
-            return new string(chArray, 0, chArray.Length - 1);
+            return new String(chArray, 0, chArray.Length - 1);
         }
 
         // Converts an array of bytes into a String.  
-        public static string ToString(byte[] value)
+        public static String ToString(byte[] value)
         {
             if (value == null)
-                ThrowValueArgumentNull();
-            Contract.Ensures(Contract.Result<string>() != null);
+                throw new ArgumentNullException("value");
+            Contract.Ensures(Contract.Result<String>() != null);
             Contract.EndContractBlock();
             return ToString(value, 0, value.Length);
         }
 
         // Converts an array of bytes into a String.  
-        public static string ToString(byte[] value, int startIndex)
+        public static String ToString(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
-            Contract.Ensures(Contract.Result<string>() != null);
+                throw new ArgumentNullException("value");
+            Contract.Ensures(Contract.Result<String>() != null);
             Contract.EndContractBlock();
             return ToString(value, startIndex, value.Length - startIndex);
         }
@@ -412,14 +475,14 @@ namespace System
         public static bool ToBoolean(byte[] value, int startIndex)
         {
             if (value == null)
-                ThrowValueArgumentNull();
+                throw new ArgumentNullException("value");
             if (startIndex < 0)
-                ThrowStartIndexArgumentOutOfRange();
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_NeedNonNegNum);
             if (startIndex > value.Length - 1)
-                ThrowStartIndexArgumentOutOfRange(); // differs from other overloads, which throw base ArgumentException
+                throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
             Contract.EndContractBlock();
 
-            return value[startIndex] != 0;
+            return (value[startIndex] == 0) ? false : true;
         }
 
         [SecuritySafeCritical]
@@ -430,7 +493,7 @@ namespace System
             // should be used by other programs on that processor, or for compatibility across multiple
             // formats.  Because this is ambiguous, we're excluding this from the Portable Library & Win8 Profile.
             // If we ever run on big endian machines, produce two versions where endianness is specified.
-            Debug.Assert(IsLittleEndian, "This method is implemented assuming little endian with an ambiguous spec.");
+            Contract.Assert(IsLittleEndian, "This method is implemented assuming little endian with an ambiguous spec.");
             return *((long*)&value);
         }
 
@@ -442,23 +505,8 @@ namespace System
             // should be used by other programs on that processor, or for compatibility across multiple
             // formats.  Because this is ambiguous, we're excluding this from the Portable Library & Win8 Profile.
             // If we ever run on big endian machines, produce two versions where endianness is specified.
-            Debug.Assert(IsLittleEndian, "This method is implemented assuming little endian with an ambiguous spec.");
+            Contract.Assert(IsLittleEndian, "This method is implemented assuming little endian with an ambiguous spec.");
             return *((double*)&value);
-        }
-
-        private static void ThrowValueArgumentNull()
-        {
-            throw new ArgumentNullException("value");
-        }
-
-        private static void ThrowStartIndexArgumentOutOfRange()
-        {
-            throw new ArgumentOutOfRangeException("startIndex", SR.ArgumentOutOfRange_Index);
-        }
-
-        private static void ThrowValueArgumentTooSmall()
-        {
-            throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall, "value");
         }
     }
 }

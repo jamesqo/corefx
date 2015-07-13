@@ -661,7 +661,7 @@ namespace System.Reflection.Metadata
                 }
             }
 
-            throw new BadImageFormatException(SR.WinMDMissingMscorlibRef);
+            throw new BadImageFormatException(MetadataResources.WinMDMissingMscorlibRef);
         }
 
         #endregion

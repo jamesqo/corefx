@@ -105,7 +105,7 @@ namespace System.Reflection.Metadata.Ecma335
 
             if (tokenType == InvalidTokenType || ((rowId & ~TokenTypeIds.RIDMask) != 0))
             {
-                Throw.InvalidCodedIndex();
+                Handle.ThrowInvalidCodedIndex();
             }
 
             return new EntityHandle(tokenType | rowId);

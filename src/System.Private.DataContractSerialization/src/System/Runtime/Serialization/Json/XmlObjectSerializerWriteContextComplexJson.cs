@@ -14,17 +14,15 @@ namespace System.Runtime.Serialization.Json
 {
 #if NET_NATIVE
     public class XmlObjectSerializerWriteContextComplexJson : XmlObjectSerializerWriteContextComplex
-#elif MERGE_DCJS
-    internal class XmlObjectSerializerWriteContextComplexJson : XmlObjectSerializerWriteContextComplex
 #else
     internal class XmlObjectSerializerWriteContextComplexJson : XmlObjectSerializerWriteContext
 #endif
     {
         private DataContractJsonSerializer _jsonSerializer;
-#if !NET_NATIVE && !MERGE_DCJS
+#if !NET_NATIVE
         private bool _isSerializerKnownDataContractsSetExplicit;
 #endif
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         private EmitTypeInformation _emitXsiType;
         private bool _perCallXsiTypeAlreadyEmitted;
         private bool _useSimpleDictionaryFormat;
@@ -44,7 +42,7 @@ namespace System.Runtime.Serialization.Json
             return new XmlObjectSerializerWriteContextComplexJson(serializer, rootTypeDataContract);
         }
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         internal static XmlObjectSerializerWriteContextComplexJson CreateContext(DataContractJsonSerializerImpl serializer, DataContract rootTypeDataContract)
         {
             return new XmlObjectSerializerWriteContextComplexJson(serializer, rootTypeDataContract);
@@ -61,7 +59,7 @@ namespace System.Runtime.Serialization.Json
         }
 #endif
 
-#if !NET_NATIVE && !MERGE_DCJS
+#if !NET_NATIVE
         internal override DataContractDictionary SerializerKnownDataContracts
         {
             get
@@ -85,7 +83,7 @@ namespace System.Runtime.Serialization.Json
             }
         }
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         public bool UseSimpleDictionaryFormat
         {
             get
@@ -109,7 +107,7 @@ namespace System.Runtime.Serialization.Json
             //Noop
         }
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         protected override void WriteTypeInfo(XmlWriterDelegator writer, string dataContractName, string dataContractNamespace)
         {
             if (_emitXsiType != EmitTypeInformation.Never)
@@ -154,7 +152,7 @@ namespace System.Runtime.Serialization.Json
                  (contract.Name.Value == declaredContract.Name.Value &&
                  contract.Namespace.Value == declaredContract.Namespace.Value)) &&
                  (contract.UnderlyingType != Globals.TypeOfObjectArray)
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE 
                 && (_emitXsiType != EmitTypeInformation.Never)
 #endif
                 )
@@ -163,7 +161,7 @@ namespace System.Runtime.Serialization.Json
                 // Because of its common and JSON-specific nature, 
                 //    we don't want to validate known type information for object[]
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
                 // Don't validate known type information when emitXsiType == Never because
                 // known types are not used without type information in the JSON
 
@@ -192,7 +190,7 @@ namespace System.Runtime.Serialization.Json
             return false;
         }
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         private static bool RequiresJsonTypeInfo(DataContract contract)
         {
             return (contract is ClassDataContract);
@@ -206,7 +204,7 @@ namespace System.Runtime.Serialization.Json
 
         protected override void WriteDataContractValue(DataContract dataContract, XmlWriterDelegator xmlWriter, object obj, RuntimeTypeHandle declaredTypeHandle)
         {
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
             JsonDataContract jsonDataContract = JsonDataContract.GetJsonDataContract(dataContract);
             if (_emitXsiType == EmitTypeInformation.Always && !_perCallXsiTypeAlreadyEmitted && RequiresJsonTypeInfo(dataContract))
             {
@@ -221,12 +219,12 @@ namespace System.Runtime.Serialization.Json
 
         protected override void WriteNull(XmlWriterDelegator xmlWriter)
         {
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
             DataContractJsonSerializerImpl.WriteJsonNull(xmlWriter);
 #endif
         }
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         internal XmlDictionaryString CollectionItemName
         {
             get { return JsonGlobals.itemDictionaryString; }
@@ -326,12 +324,6 @@ namespace System.Runtime.Serialization.Json
                 scopedKnownTypes.Pop();
             }
         }
-
-        internal static void WriteJsonNameWithMapping(XmlWriterDelegator xmlWriter, XmlDictionaryString[] memberNames, int index)
-        {
-            xmlWriter.WriteStartElement("a", JsonGlobals.itemString, JsonGlobals.itemString);
-            xmlWriter.WriteAttributeString(null, JsonGlobals.itemString, null, memberNames[index].Value);
-        }
 #endif
 
         internal static void VerifyObjectCompatibilityWithInterface(DataContract contract, object graph, Type declaredType)
@@ -377,7 +369,7 @@ namespace System.Runtime.Serialization.Json
             }
         }
 
-#if !NET_NATIVE && !MERGE_DCJS
+#if !NET_NATIVE
         private ObjectReferenceStack _byValObjectsInScope = new ObjectReferenceStack();
         internal override bool OnHandleReference(XmlWriterDelegator xmlWriter, object obj, bool canContainCyclicReference)
         {

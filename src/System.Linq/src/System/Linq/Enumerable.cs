@@ -100,7 +100,7 @@ namespace System.Linq
 
             public IEnumerator<TSource> GetEnumerator()
             {
-                if (state == 0 && _threadId == Environment.CurrentManagedThreadId)
+                if (_threadId == Environment.CurrentManagedThreadId && state == 0)
                 {
                     state = 1;
                     return this;
@@ -143,11 +143,6 @@ namespace System.Linq
             }
 
             public abstract IEnumerable<TSource> Where(Func<TSource, bool> predicate);
-
-            public virtual TSource[] ToArray()
-            {
-                return new Buffer<TSource>(this, queryInterfaces: false).ToArray();
-            }
 
             object IEnumerator.Current
             {
@@ -436,21 +431,6 @@ namespace System.Linq
             {
                 return new WhereEnumerableIterator<TResult>(this, predicate);
             }
-
-            public override TResult[] ToArray()
-            {
-                if (_predicate != null)
-                {
-                    return base.ToArray();
-                }
-
-                var results = new TResult[_source.Length];
-                for (int i = 0; i < results.Length; i++)
-                {
-                    results[i] = _selector(_source[i]);
-                }
-                return results;
-            }
         }
 
         internal class WhereSelectListIterator<TSource, TResult> : Iterator<TResult>
@@ -505,21 +485,6 @@ namespace System.Linq
             public override IEnumerable<TResult> Where(Func<TResult, bool> predicate)
             {
                 return new WhereEnumerableIterator<TResult>(this, predicate);
-            }
-
-            public override TResult[] ToArray()
-            {
-                if (_predicate != null)
-                {
-                    return base.ToArray();
-                }
-
-                var results = new TResult[_source.Count];
-                for (int i = 0; i < results.Length; i++)
-                {
-                    results[i] = _selector(_source[i]);
-                }
-                return results;
             }
         }
 
@@ -1452,7 +1417,7 @@ namespace System.Linq
 
         public static IEnumerable<TResult> Empty<TResult>()
         {
-            return Array.Empty<TResult>();
+            return EmptyEnumerable<TResult>.Instance;
         }
 
         public static bool Any<TSource>(this IEnumerable<TSource> source)
@@ -1460,8 +1425,9 @@ namespace System.Linq
             if (source == null) throw Error.ArgumentNull("source");
             using (IEnumerator<TSource> e = source.GetEnumerator())
             {
-                return e.MoveNext();
+                if (e.MoveNext()) return true;
             }
+            return false;
         }
 
         public static bool Any<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
@@ -2500,6 +2466,15 @@ namespace System.Linq
         }
     }
 
+    //
+    // This is a more memory-intensive EmptyEnumerable<TElement> that allocates a new Enumerator each time. Unfortunately, we have to retain it
+    // for desktop platforms to avoid breaking scenarios that serialize an empty enumerable on 4.5 and deserialize it on 4.0.
+    // 
+    internal class EmptyEnumerable<TElement>
+    {
+        public static readonly TElement[] Instance = new TElement[0];
+    }
+
     internal class IdentityFunction<TElement>
     {
         public static Func<TElement, TElement> Instance
@@ -2574,7 +2549,7 @@ namespace System.Linq
             {
                 Grouping<TKey, TElement> grouping = GetGrouping(key, false);
                 if (grouping != null) return grouping;
-                return Array.Empty<TElement>();
+                return EmptyEnumerable<TElement>.Instance;
             }
         }
 
@@ -3096,10 +3071,7 @@ namespace System.Linq
                 if (next == null) return index1 - index2;
                 return next.CompareKeys(index1, index2);
             }
-            // -c will result in a negative value for int.MinValue (-int.MinValue == int.MinValue).
-            // Flipping keys earlier is more likely to trigger something strange in a comparer,
-            // particularly as it comes to the sort being stable.
-            return (descending != (c > 0)) ? 1 : -1;
+            return descending ? -c : c;
         }
     }
 
@@ -3108,35 +3080,21 @@ namespace System.Linq
         internal TElement[] items;
         internal int count;
 
-        internal Buffer(IEnumerable<TElement> source, bool queryInterfaces = true)
+        internal Buffer(IEnumerable<TElement> source)
         {
             TElement[] items = null;
             int count = 0;
-
-            if (queryInterfaces)
+            ICollection<TElement> collection = source as ICollection<TElement>;
+            if (collection != null)
             {
-                Enumerable.Iterator<TElement> iterator = source as Enumerable.Iterator<TElement>;
-                if (iterator != null)
+                count = collection.Count;
+                if (count > 0)
                 {
-                    items = iterator.ToArray();
-                    count = items.Length;
-                }
-                else
-                {
-                    ICollection<TElement> collection = source as ICollection<TElement>;
-                    if (collection != null)
-                    {
-                        count = collection.Count;
-                        if (count > 0)
-                        {
-                            items = new TElement[count];
-                            collection.CopyTo(items, 0);
-                        }
-                    }
+                    items = new TElement[count];
+                    collection.CopyTo(items, 0);
                 }
             }
-
-            if (items == null)
+            else
             {
                 foreach (TElement item in source)
                 {
@@ -3152,7 +3110,6 @@ namespace System.Linq
                     count++;
                 }
             }
-
             this.items = items;
             this.count = count;
         }

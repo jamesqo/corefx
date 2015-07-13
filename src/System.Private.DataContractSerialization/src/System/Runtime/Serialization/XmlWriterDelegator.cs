@@ -349,6 +349,7 @@ namespace System.Runtime.Serialization
                     WriteUnsignedLong((ulong)value);
                     break;
                 case TypeCode.Empty:
+                case TypeCode.DBNull:
                 case TypeCode.Object:
                 default:
                     if (valueType == Globals.TypeOfByteArray)

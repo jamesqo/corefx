@@ -6,6 +6,7 @@ using System.Runtime;
 using System.Security;
 using System.Text;
 
+#if NET_NATIVE
 namespace System.Xml
 {
     internal interface IXmlTextWriterInitializer
@@ -745,3 +746,4 @@ namespace System.Xml
         }
     }
 }
+#endif

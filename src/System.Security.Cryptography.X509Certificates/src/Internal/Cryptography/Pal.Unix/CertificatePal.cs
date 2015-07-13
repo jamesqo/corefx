@@ -10,10 +10,7 @@ namespace Internal.Cryptography.Pal
     {
         public static ICertificatePal FromHandle(IntPtr handle)
         {
-            if (handle == IntPtr.Zero)
-                throw new ArgumentException(SR.Arg_InvalidHandle, "handle");
-
-            return new OpenSslX509CertificateReader(Interop.libcrypto.X509_dup(handle));
+            throw new NotImplementedException();
         }
 
         public static ICertificatePal FromBlob(byte[] rawData, string password, X509KeyStorageFlags keyStorageFlags)

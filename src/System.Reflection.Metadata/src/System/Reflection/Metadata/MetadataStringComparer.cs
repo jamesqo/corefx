@@ -59,7 +59,7 @@ namespace System.Reflection.Metadata
         {
             if (value == null)
             {
-                Throw.ValueArgumentNull();
+                ThrowValueArgumentNull();
             }
 
             return _reader.StringStream.Equals(handle, value, _reader.utf8Decoder);
@@ -69,7 +69,7 @@ namespace System.Reflection.Metadata
         {
             if (value == null)
             {
-                Throw.ValueArgumentNull();
+                ThrowValueArgumentNull();
             }
 
             if (handle.HasFullName)
@@ -84,10 +84,16 @@ namespace System.Reflection.Metadata
         {
             if (value == null)
             {
-                Throw.ValueArgumentNull();
+                ThrowValueArgumentNull();
             }
 
             return _reader.StringStream.StartsWith(handle, value, _reader.utf8Decoder);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowValueArgumentNull()
+        {
+            throw new ArgumentNullException("value");
         }
     }
 }

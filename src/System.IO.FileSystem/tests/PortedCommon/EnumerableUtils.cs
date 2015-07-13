@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Security;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EnumerableTests
@@ -31,10 +33,10 @@ namespace EnumerableTests
         }
 
         // test setup and tear-down
-        public void CreateTestDirs(String testFolder)
+        public void CreateTestDirs()
         {
             String currentDir = Directory.GetCurrentDirectory();
-            testDir = Path.Combine(currentDir, testFolder, Path.GetRandomFileName());
+            testDir = Path.Combine(currentDir, "FSEnumeratorTest", Path.GetRandomFileName());
 
             if (Directory.Exists(testDir))
                 Directory.Delete(testDir, true);
@@ -144,14 +146,13 @@ namespace EnumerableTests
 
         public void DeleteTestDirs()
         {
-            bool deleted = false;
-            int attemptsRemaining = 5;
+            bool deleted = false; int attemptsRemaining = 5;
             while (!deleted && attemptsRemaining > 0)
             {
                 try
                 {
                     if (Directory.Exists(testDir))
-                        FailSafeDirectoryOperations.DeleteDirectory(testDir, true);
+                        Directory.Delete(testDir, true);
                     deleted = true;
                     break;
                 }

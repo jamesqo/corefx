@@ -5,6 +5,7 @@ using System.Xml;
 using System.Runtime.Serialization;
 using System.Globalization;
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization.Json
 {
     internal class JsonObjectDataContract : JsonDataContract
@@ -111,3 +112,4 @@ namespace System.Runtime.Serialization.Json
         }
     }
 }
+#endif

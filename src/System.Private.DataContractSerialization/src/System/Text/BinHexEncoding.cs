@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Runtime;
 using System.Security;
 
+#if NET_NATIVE
 namespace System.Text
 {
     internal class BinHexEncoding : Encoding
@@ -164,3 +165,4 @@ namespace System.Text
         }
     }
 }
+#endif

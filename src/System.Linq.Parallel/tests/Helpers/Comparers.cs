@@ -19,7 +19,7 @@ namespace Test
         }
     }
 
-    internal class ModularCongruenceComparer : IEqualityComparer<int>, IComparer<int>
+    internal class ModularCongruenceComparer : IEqualityComparer<int>
     {
         private int _mod;
 
@@ -46,11 +46,6 @@ namespace Test
         public int GetHashCode(object obj)
         {
             return GetHashCode((int)obj);
-        }
-
-        public int Compare(int x, int y)
-        {
-            return leastPositiveResidue(x).CompareTo(leastPositiveResidue(y));
         }
     }
 

@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using Xunit;
 
@@ -11,6 +9,7 @@ namespace System.Security.Cryptography.Rsa.Tests
     public class SignVerify
     {
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void ExpectedSignature_SHA1_2048()
         {
             byte[] expectedSignature = new byte[]
@@ -53,6 +52,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void ExpectedSignature_SHA256_1024()
         {
             byte[] expectedSignature = new byte[]
@@ -79,6 +79,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void ExpectedSignature_SHA256_2048()
         {
             byte[] expectedSignature = new byte[]
@@ -121,6 +122,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void ExpectSignature_SHA256_1024_Stream()
         {
             byte[] expectedSignature = new byte[]
@@ -156,6 +158,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void VerifySignature_SHA1_2048()
         {
             byte[] signature = new byte[]
@@ -198,6 +201,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void VerifySignature_SHA256_1024()
         {
             byte[] signature = new byte[]
@@ -224,6 +228,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void VerifySignature_SHA256_2048()
         {
             byte[] signature = new byte[]
@@ -266,24 +271,28 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void SignAndVerify_SHA1_1024()
         {
             SignAndVerify(TestData.HelloBytes, "SHA1", TestData.RSA1024Params);
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void SignAndVerify_SHA1_2048()
         {
             SignAndVerify(TestData.HelloBytes, "SHA1", TestData.RSA2048Params);
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void SignAndVerify_SHA256_1024()
         {
             SignAndVerify(TestData.HelloBytes, "SHA256", TestData.RSA1024Params);
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void NegativeVerify_WrongAlgorithm()
         {
             using (var rsa = new RSACryptoServiceProvider())
@@ -297,6 +306,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void NegativeVerify_WrongSignature()
         {
             using (var rsa = new RSACryptoServiceProvider())
@@ -313,6 +323,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void NegativeVerify_TamperedData()
         {
             using (var rsa = new RSACryptoServiceProvider())
@@ -325,6 +336,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void NegativeVerify_BadKeysize()
         {
             byte[] signature;
@@ -345,6 +357,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void ExpectedHashSignature_SHA1_2048()
         {
             byte[] expectedHashSignature = new byte[]
@@ -394,6 +407,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void ExpectedHashSignature_SHA256_1024()
         {
             byte[] expectedHashSignature = new byte[]
@@ -427,6 +441,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void ExpectedHashSignature_SHA256_2048()
         {
             byte[] expectedHashSignature = new byte[]
@@ -476,6 +491,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void VerifyHashSignature_SHA1_2048()
         {
             byte[] hashSignature = new byte[]
@@ -525,6 +541,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void VerifyHashSignature_SHA256_1024()
         {
             byte[] hashSignature = new byte[]
@@ -558,6 +575,7 @@ namespace System.Security.Cryptography.Rsa.Tests
         }
 
         [Fact]
+        [ActiveIssue(1964, PlatformID.AnyUnix)]
         public static void VerifyHashSignature_SHA256_2048()
         {
             byte[] hashSignature = new byte[]
@@ -604,45 +622,6 @@ namespace System.Security.Cryptography.Rsa.Tests
             }
 
             VerifyHashSignature(hashSignature, dataHash, "SHA256", TestData.RSA2048Params);
-        }
-
-        [Theory]
-        [MemberData("AlgorithmIdentifiers")]
-        public static void AlgorithmLookups(string primaryId, object halg)
-        {
-            byte[] data = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-
-            using (var rsa = new RSACryptoServiceProvider())
-            {
-                rsa.ImportParameters(TestData.RSA2048Params);
-
-                byte[] primary = rsa.SignData(data, primaryId);
-                byte[] lookup = rsa.SignData(data, halg);
-
-                Assert.Equal(primary, lookup);
-            }
-        }
-
-        public static IEnumerable<object[]> AlgorithmIdentifiers()
-        {
-            return new[]
-            {
-                new object[] { "MD5", MD5.Create() },
-                new object[] { "MD5", typeof(MD5) },
-                new object[] { "MD5", "1.2.840.113549.2.5" },
-                new object[] { "SHA1", SHA1.Create() },
-                new object[] { "SHA1", typeof(SHA1) },
-                new object[] { "SHA1", "1.3.14.3.2.26" },
-                new object[] { "SHA256", SHA256.Create() },
-                new object[] { "SHA256", typeof(SHA256) },
-                new object[] { "SHA256", "2.16.840.1.101.3.4.2.1" },
-                new object[] { "SHA384", SHA384.Create() },
-                new object[] { "SHA384", typeof(SHA384) },
-                new object[] { "SHA384", "2.16.840.1.101.3.4.2.2" },
-                new object[] { "SHA512", SHA512.Create() },
-                new object[] { "SHA512", typeof(SHA512) },
-                new object[] { "SHA512", "2.16.840.1.101.3.4.2.3" },
-            };
         }
 
         private static void ExpectSignature(

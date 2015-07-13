@@ -26,7 +26,7 @@ namespace System.Reflection.Metadata.Ecma335
 
             if ((int)tableIndex >= TableIndexExtensions.Count)
             {
-                Throw.TableIndexOutOfRange();
+                throw new ArgumentOutOfRangeException("tableIndex");
             }
 
             return (int)reader.TableRowCounts[(int)tableIndex];

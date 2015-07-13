@@ -1,10 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Globalization;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security;
+using System.Text;
+
+using Microsoft.Win32;
 
 namespace System.IO
 {
@@ -17,8 +25,25 @@ namespace System.IO
                 throw new ArgumentNullException("path");
             Contract.EndContractBlock();
 
-            OriginalPath = PathHelpers.ShouldReviseDirectoryPathToCurrent(path) ? "." : path;
-            FullPath = PathHelpers.GetFullPathInternal(path);
+            Init(path);
+        }
+
+        [System.Security.SecurityCritical]
+        private void Init(String path)
+        {
+            // Special case "<DriveLetter>:" to point to "<CurrentDirectory>" instead
+            if ((path.Length == 2) && (path[1] == ':'))
+            {
+                OriginalPath = ".";
+            }
+            else
+            {
+                OriginalPath = path;
+            }
+
+            String fullPath = PathHelpers.GetFullPathInternal(path);
+
+            FullPath = fullPath;
             DisplayPath = GetDisplayName(OriginalPath, FullPath);
         }
 
@@ -26,9 +51,9 @@ namespace System.IO
         internal DirectoryInfo(String fullPath, IFileSystemObject fileSystemObject) : base(fileSystemObject)
         {
             Debug.Assert(PathHelpers.GetRootLength(fullPath) > 0, "fullPath must be fully qualified!");
-            
             // Fast path when we know a DirectoryInfo exists.
             OriginalPath = Path.GetFileName(fullPath);
+
             FullPath = fullPath;
             DisplayPath = GetDisplayName(OriginalPath, FullPath);
         }
@@ -49,20 +74,17 @@ namespace System.IO
             [System.Security.SecuritySafeCritical]
             get
             {
-                string s = FullPath;
-
-                // FullPath might end in either "parent\child" or "parent\child", and in either case we want 
-                // the parent of child, not the child. Trim off an ending directory separator if there is one,
-                // but don't mangle the root.
-                if (!PathHelpers.IsRoot(s))
-                {
-                    s = PathHelpers.TrimEndingDirectorySeparator(s);
-                }
-
-                string parentName = Path.GetDirectoryName(s);
-                return parentName != null ? 
-                    new DirectoryInfo(parentName, null) :
-                    null;
+                String parentName;
+                // FullPath might be either "c:\bar" or "c:\bar\".  Handle 
+                // those cases, as well as avoiding mangling "c:\".
+                String s = FullPath;
+                if (s.Length > 3 && s[s.Length - 1] == Path.DirectorySeparatorChar)
+                    s = FullPath.Substring(0, FullPath.Length - 1);
+                parentName = Path.GetDirectoryName(s);
+                if (parentName == null)
+                    return null;
+                DirectoryInfo dir = new DirectoryInfo(parentName, null);
+                return dir;
             }
         }
 
@@ -89,7 +111,7 @@ namespace System.IO
 
             if (0 != String.Compare(FullPath, 0, fullPath, 0, FullPath.Length, PathInternal.GetComparison()))
             {
-                throw new ArgumentException(SR.Format(SR.Argument_InvalidSubPath, path, DisplayPath), "path");
+                throw new ArgumentException(SR.Format(SR.Argument_InvalidSubPath, path, DisplayPath));
             }
 
             FileSystem.Current.CreateDirectory(fullPath);
@@ -157,8 +179,9 @@ namespace System.IO
             Contract.Requires(searchPattern != null);
             Contract.Requires(searchOption == SearchOption.AllDirectories || searchOption == SearchOption.TopDirectoryOnly);
 
-            IEnumerable<FileInfo> enumerable = (IEnumerable<FileInfo>)FileSystem.Current.EnumerateFileSystemInfos(FullPath, searchPattern, searchOption, SearchTarget.Files);
-            return EnumerableHelpers.ToArray(enumerable);
+            IEnumerable<FileInfo> enble = (IEnumerable<FileInfo>)FileSystem.Current.EnumerateFileSystemInfos(FullPath, searchPattern, searchOption, SearchTarget.Files);
+            List<FileInfo> fileList = new List<FileInfo>(enble);
+            return fileList.ToArray();
         }
 
         // Returns an array of Files in the DirectoryInfo specified by path
@@ -205,7 +228,8 @@ namespace System.IO
             Contract.Requires(searchOption == SearchOption.AllDirectories || searchOption == SearchOption.TopDirectoryOnly);
 
             IEnumerable<FileSystemInfo> enumerable = FileSystem.Current.EnumerateFileSystemInfos(FullPath, searchPattern, searchOption, SearchTarget.Both);
-            return EnumerableHelpers.ToArray(enumerable);
+            List<FileSystemInfo> fileList = new List<FileSystemInfo>(enumerable);
+            return fileList.ToArray();
         }
 
         // Returns an array of strongly typed FileSystemInfo entries which will contain a listing
@@ -250,7 +274,8 @@ namespace System.IO
             Contract.Requires(searchOption == SearchOption.AllDirectories || searchOption == SearchOption.TopDirectoryOnly);
 
             IEnumerable<DirectoryInfo> enumerable = (IEnumerable<DirectoryInfo>)FileSystem.Current.EnumerateFileSystemInfos(FullPath, searchPattern, searchOption, SearchTarget.Directories);
-            return EnumerableHelpers.ToArray(enumerable);
+            List<DirectoryInfo> fileList = new List<DirectoryInfo>(enumerable);
+            return fileList.ToArray();
         }
 
         public IEnumerable<DirectoryInfo> EnumerateDirectories()
@@ -435,18 +460,40 @@ namespace System.IO
             Debug.Assert(originalPath != null);
             Debug.Assert(fullPath != null);
 
-            return PathHelpers.ShouldReviseDirectoryPathToCurrent(originalPath) ?
-                "." :
-                GetDirName(fullPath);
+            String displayName = "";
+
+            // Special case "<DriveLetter>:" to point to "<CurrentDirectory>" instead
+            if ((originalPath.Length == 2) && (originalPath[1] == ':'))
+            {
+                displayName = ".";
+            }
+            else
+            {
+                displayName = GetDirName(fullPath);
+            }
+            return displayName;
         }
 
         private static String GetDirName(String fullPath)
         {
             Debug.Assert(fullPath != null);
 
-            return PathHelpers.IsRoot(fullPath) ?
-                fullPath :
-                Path.GetFileName(PathHelpers.TrimEndingDirectorySeparator(fullPath));
+            String dirName = null;
+            if (fullPath.Length > 3)
+            {
+                String s = fullPath;
+                if (fullPath[fullPath.Length - 1] == Path.DirectorySeparatorChar)
+                {
+                    s = fullPath.Substring(0, fullPath.Length - 1);
+                }
+                dirName = Path.GetFileName(s);
+            }
+            else
+            {
+                dirName = fullPath;  // For rooted paths, like "c:\"
+            }
+            return dirName;
         }
     }
 }
+

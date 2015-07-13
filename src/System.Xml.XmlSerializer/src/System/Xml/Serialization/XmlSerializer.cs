@@ -59,7 +59,6 @@ namespace System.Xml.Serialization
         private XmlMapping _mapping;
         private XmlDeserializationEvents _events = new XmlDeserializationEvents();
 #if NET_NATIVE
-        public string DefaultNamespace = null;
         private XmlSerializer innerSerializer;
         private readonly Type rootType;
 #endif
@@ -157,7 +156,13 @@ namespace System.Xml.Serialization
                 throw new ArgumentNullException("type");
 
 #if NET_NATIVE
-            this.DefaultNamespace = defaultNamespace;
+            // The ctor is not supported, but we cannot throw PNSE unconditionally
+            // because the ctor is used by ctor(Type) which passes in a null defaultNamespace.
+            if (!string.IsNullOrEmpty(defaultNamespace))
+            {
+                throw new PlatformNotSupportedException();
+            }
+
             rootType = type;
 #endif
             _mapping = GetKnownMapping(type, defaultNamespace);
@@ -339,11 +344,6 @@ namespace System.Xml.Serialization
                         throw new InvalidOperationException(SR.Format(SR.Xml_MissingSerializationCodeException, this.rootType, typeof(XmlSerializer).Name));
                     }
 
-                    if (!string.IsNullOrEmpty(this.DefaultNamespace))
-                    {
-                        this.innerSerializer.DefaultNamespace = this.DefaultNamespace; 
-                    }
-                    
                     XmlSerializationWriter writer = this.innerSerializer.CreateWriter();
                     writer.Init(xmlWriter, namespaces == null || namespaces.Count == 0 ? DefaultNamespaces : namespaces, encodingStyle, id);
                     try
@@ -457,11 +457,6 @@ namespace System.Xml.Serialization
                     if (this.innerSerializer == null)
                     {
                         throw new InvalidOperationException(SR.Format(SR.Xml_MissingSerializationCodeException, this.rootType, typeof(XmlSerializer).Name));
-                    }
-
-                    if (!string.IsNullOrEmpty(this.DefaultNamespace))
-                    {
-                        this.innerSerializer.DefaultNamespace = this.DefaultNamespace; 
                     }
 
                     XmlSerializationReader reader = this.innerSerializer.CreateReader();

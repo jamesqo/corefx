@@ -2,8 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Diagnostics;
-using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 
@@ -142,15 +140,7 @@ namespace Internal.Cryptography
 
             CheckInvalidKey(key);
 
-            RSAParameters rsaParameters = Interop.libcrypto.ExportRsaParameters(key, includePrivateParameters);
-            bool hasPrivateKey = rsaParameters.D != null;
-
-            if (hasPrivateKey != includePrivateParameters || !HasConsistentPrivateKey(ref rsaParameters))
-            {
-                throw new CryptographicException(SR.Cryptography_CSP_NoPrivateKey);
-            }
-
-            return rsaParameters;
+            return Interop.libcrypto.ExportRsaParameters(key, includePrivateParameters);
         }
         
         public override unsafe void ImportParameters(RSAParameters parameters)
@@ -160,7 +150,7 @@ namespace Internal.Cryptography
             SafeRsaHandle key = Interop.libcrypto.RSA_new();
             bool imported = false;
 
-            Interop.libcrypto.CheckValidOpenSslHandle(key);
+            CheckInvalidNewKey(key);
 
             try
             {
@@ -226,12 +216,6 @@ namespace Internal.Cryptography
             if (parameters.Modulus == null || parameters.Exponent == null)
                 throw new CryptographicException(SR.Argument_InvalidValue);
 
-            if (!HasConsistentPrivateKey(ref parameters))
-                throw new CryptographicException(SR.Argument_InvalidValue);
-        }
-
-        private static bool HasConsistentPrivateKey(ref RSAParameters parameters)
-        {
             if (parameters.D == null)
             {
                 if (parameters.P != null ||
@@ -240,7 +224,7 @@ namespace Internal.Cryptography
                     parameters.DQ != null ||
                     parameters.InverseQ != null)
                 {
-                    return false;
+                    throw new CryptographicException(SR.Argument_InvalidValue);
                 }
             }
             else
@@ -251,11 +235,9 @@ namespace Internal.Cryptography
                     parameters.DQ == null ||
                     parameters.InverseQ == null)
                 {
-                    return false;
+                    throw new CryptographicException(SR.Argument_InvalidValue);
                 }
             }
-
-            return true;
         }
 
         private static void CheckInvalidKey(SafeRsaHandle key)
@@ -266,11 +248,19 @@ namespace Internal.Cryptography
             }
         }
 
+        private static void CheckInvalidNewKey(SafeRsaHandle key)
+        {
+            if (key == null || key.IsInvalid)
+            {
+                throw CreateOpenSslException();
+            }
+        }
+
         private static void CheckReturn(int returnValue)
         {
             if (returnValue == -1)
             {
-                throw Interop.libcrypto.CreateOpenSslCryptographicException();
+                throw CreateOpenSslException();
             }
         }
 
@@ -281,7 +271,7 @@ namespace Internal.Cryptography
                 return;
             }
 
-            throw Interop.libcrypto.CreateOpenSslCryptographicException();
+            throw CreateOpenSslException();
         }
 
         private SafeRsaHandle GenerateKey()
@@ -289,7 +279,7 @@ namespace Internal.Cryptography
             SafeRsaHandle key = Interop.libcrypto.RSA_new();
             bool generated = false;
 
-            Interop.libcrypto.CheckValidOpenSslHandle(key);
+            CheckInvalidNewKey(key);
 
             try
             {
@@ -319,112 +309,9 @@ namespace Internal.Cryptography
             return key;
         }
 
-        internal byte[] HashData(byte[] buffer, int offset, int count, HashAlgorithmName hashAlgorithmName)
+        private static Exception CreateOpenSslException()
         {
-            using (HashAlgorithm hasher = GetHashAlgorithm(hashAlgorithmName))
-            {
-                return hasher.ComputeHash(buffer, offset, count);
-            }
-        }
-
-        internal byte[] HashData(Stream stream, HashAlgorithmName hashAlgorithmName)
-        {
-            using (HashAlgorithm hasher = GetHashAlgorithm(hashAlgorithmName))
-            {
-                return hasher.ComputeHash(stream);
-            }
-        }
-
-        internal byte[] SignHash(byte[] hash, HashAlgorithmName hashAlgorithmName)
-        {
-            int algorithmNid = GetAlgorithmNid(hashAlgorithmName);
-            SafeRsaHandle rsa = _key.Value;
-            byte[] signature = new byte[Interop.libcrypto.RSA_size(rsa)];
-            int signatureSize;
-
-            bool success = Interop.libcrypto.RSA_sign(
-                algorithmNid,
-                hash,
-                hash.Length,
-                signature,
-                out signatureSize,
-                rsa);
-
-            if (!success)
-            {
-                throw Interop.libcrypto.CreateOpenSslCryptographicException();
-            }
-
-            Debug.Assert(
-                signatureSize == signature.Length,
-                "RSA_sign reported an unexpected signature size",
-                "RSA_sign reported signatureSize was {0}, when {1} was expected",
-                signatureSize,
-                signature.Length);
-
-            return signature;
-        }
-
-        internal bool VerifyHash(byte[] hash, byte[] signature, HashAlgorithmName hashAlgorithmName)
-        {
-            int algorithmNid = GetAlgorithmNid(hashAlgorithmName);
-            SafeRsaHandle rsa = _key.Value;
-
-            return Interop.libcrypto.RSA_verify(
-                algorithmNid,
-                hash,
-                hash.Length,
-                signature,
-                signature.Length,
-                rsa);
-        }
-
-        private static int GetAlgorithmNid(HashAlgorithmName hashAlgorithmName)
-        {
-            // All of the current HashAlgorithmName values correspond to the SN values in OpenSSL 0.9.8.
-            // If there's ever a new one that doesn't, translate it here.
-            string sn = hashAlgorithmName.Name;
-
-            int nid = Interop.libcrypto.OBJ_sn2nid(sn);
-
-            if (nid == Interop.libcrypto.NID_undef)
-            {
-                throw new CryptographicException(SR.Cryptography_UnknownHashAlgorithm, hashAlgorithmName.Name);
-            }
-
-            return nid;
-        }
-
-        private static HashAlgorithm GetHashAlgorithm(HashAlgorithmName hashAlgorithmName)
-        {
-            HashAlgorithm hasher;
-
-            if (hashAlgorithmName == HashAlgorithmName.MD5)
-            {
-                hasher = MD5.Create();
-            }
-            else if (hashAlgorithmName == HashAlgorithmName.SHA1)
-            {
-                hasher = SHA1.Create();
-            }
-            else if (hashAlgorithmName == HashAlgorithmName.SHA256)
-            {
-                hasher = SHA256.Create();
-            }
-            else if (hashAlgorithmName == HashAlgorithmName.SHA384)
-            {
-                hasher = SHA384.Create();
-            }
-            else if (hashAlgorithmName == HashAlgorithmName.SHA512)
-            {
-                hasher = SHA512.Create();
-            }
-            else
-            {
-                throw new CryptographicException(SR.Cryptography_UnknownHashAlgorithm, hashAlgorithmName.Name);
-            }
-
-            return hasher;
+            return new CryptographicException(Interop.libcrypto.GetOpenSslErrorString());
         }
     }
 }

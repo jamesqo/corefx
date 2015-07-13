@@ -7,6 +7,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Xml;
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization.Json
 {
     internal class JsonByteArrayDataContract : JsonDataContract
@@ -29,3 +30,4 @@ namespace System.Runtime.Serialization.Json
         }
     }
 }
+#endif

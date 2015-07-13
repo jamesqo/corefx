@@ -1,3 +1,5 @@
 @echo off
+tf edit NamespaceForwardedCS.dll
 csc /target:library NamespaceForwardedCS.cs
-csc /r:NamespaceForwardedCS.dll /target:library /out:NamespaceTests.dll NamespaceTests.cs
+tf edit NamespaceTests.dll
+csc /r:NamespaceForwardedCS.dll /target:library /out:NamespaceTests.dll NamespaceTestingCS.cs

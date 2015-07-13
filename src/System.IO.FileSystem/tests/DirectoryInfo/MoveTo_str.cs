@@ -148,27 +148,24 @@ public class DirectoryInfo_Move_str
 
             strLoc = "Loc_498vy";
 
-            if (Interop.IsWindows) // whitespace-only names are valid on Unix
+            dir2 = Directory.CreateDirectory(testDir);
+            iCountTestcases++;
+            try
             {
-                dir2 = Directory.CreateDirectory(testDir);
-                iCountTestcases++;
-                try
-                {
-                    dir2.MoveTo("         ");
-                    iCountErrors++;
-                    printerr("Error_209uc! Expected exception not thrown");
-                    fil2.Delete();
-                }
-                catch (ArgumentException)
-                {
-                }
-                catch (Exception exc)
-                {
-                    iCountErrors++;
-                    printerr("Error_28829! Incorrect exception thrown, exc==" + exc.ToString());
-                }
-                dir2.Delete(true);
+                dir2.MoveTo("         ");
+                iCountErrors++;
+                printerr("Error_209uc! Expected exception not thrown");
+                fil2.Delete();
             }
+            catch (ArgumentException)
+            {
+            }
+            catch (Exception exc)
+            {
+                iCountErrors++;
+                printerr("Error_28829! Incorrect exception thrown, exc==" + exc.ToString());
+            }
+            dir2.Delete(true);
 
             // [] Mvoe to the same directory
 
@@ -247,26 +244,23 @@ public class DirectoryInfo_Move_str
 
             strLoc = "Loc_98399";
 
-            if (Interop.IsWindows) // directory with tabs as name is valid on Unix
+            dir2 = Directory.CreateDirectory(testDir);
+            iCountTestcases++;
+            try
             {
-                dir2 = Directory.CreateDirectory(testDir);
-                iCountTestcases++;
-                try
-                {
-                    dir2.MoveTo("\t");
-                    iCountErrors++;
-                    printerr("Error_2091c! Expected exception not thrown");
-                }
-                catch (ArgumentException)
-                {
-                }
-                catch (Exception exc)
-                {
-                    iCountErrors++;
-                    printerr("Error_8374v! Incorrect exception thrown, exc==" + exc.ToString());
-                }
-                dir2.Delete(true);
+                dir2.MoveTo("\t");
+                iCountErrors++;
+                printerr("Error_2091c! Expected exception not thrown");
             }
+            catch (ArgumentException)
+            {
+            }
+            catch (Exception exc)
+            {
+                iCountErrors++;
+                printerr("Error_8374v! Incorrect exception thrown, exc==" + exc.ToString());
+            }
+            dir2.Delete(true);
 
 
 

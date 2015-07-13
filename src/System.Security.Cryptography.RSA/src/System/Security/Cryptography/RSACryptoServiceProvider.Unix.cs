@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.IO;
-using System.Reflection;
+
 using Internal.Cryptography;
 
 namespace System.Security.Cryptography
@@ -17,13 +17,11 @@ namespace System.Security.Cryptography
         public RSACryptoServiceProvider()
         {
             _defer = new RSAOpenSsl();
-            _legalKeySizesValue = _defer.LegalKeySizes;
         }
 
         public RSACryptoServiceProvider(int dwKeySize)
         {
             _defer = new RSAOpenSsl(dwKeySize);
-            _legalKeySizesValue = _defer.LegalKeySizes;
         }
 
         public RSACryptoServiceProvider(int dwKeySize, CspParameters parameters)
@@ -92,69 +90,33 @@ namespace System.Security.Cryptography
 
         public byte[] SignData(byte[] buffer, int offset, int count, object halg)
         {
-            if (buffer == null)
-                throw new ArgumentNullException("buffer");
-            if (offset < 0 || offset > buffer.Length)
-                throw new ArgumentOutOfRangeException("offset");
-            if (count < 0 || count > buffer.Length - offset)
-                throw new ArgumentOutOfRangeException("count");
-
-            HashAlgorithmName hashAlgorithmName = LookupHashAlgorithm(halg);
-
-            byte[] hash = _defer.HashData(buffer, offset, count, hashAlgorithmName);
-            return _defer.SignHash(hash, hashAlgorithmName);
+            // 1964: Implement RSA Sign/Verify on Unix.
+            throw new NotImplementedException();
         }
 
         public byte[] SignData(byte[] buffer, object halg)
         {
-            if (buffer == null)
-                throw new ArgumentNullException("buffer");
-
-            return SignData(buffer, 0, buffer.Length, halg);
+            throw new NotImplementedException();
         }
 
         public byte[] SignData(Stream inputStream, object halg)
         {
-            if (inputStream == null)
-                throw new ArgumentNullException("inputStream");
-
-            HashAlgorithmName hashAlgorithmName = LookupHashAlgorithm(halg);
-
-            byte[] hash = _defer.HashData(inputStream, hashAlgorithmName);
-            return _defer.SignHash(hash, hashAlgorithmName);
+            throw new NotImplementedException();
         }
 
         public byte[] SignHash(byte[] rgbHash, string str)
         {
-            if (rgbHash == null)
-                throw new ArgumentNullException("rgbHash");
-
-            HashAlgorithmName hashAlgorithmName = LookupHashAlgorithm(str);
-
-            return _defer.SignHash(rgbHash, hashAlgorithmName);
+            throw new NotImplementedException();
         }
 
         public bool VerifyData(byte[] buffer, object halg, byte[] signature)
         {
-            if (buffer == null)
-                throw new ArgumentNullException("buffer");
-            if (signature == null)
-                throw new ArgumentNullException("signature");
-
-            HashAlgorithmName hashAlgorithmName = LookupHashAlgorithm(halg);
-            byte[] hash = _defer.HashData(buffer, 0, buffer.Length, hashAlgorithmName);
-            return _defer.VerifyHash(hash, signature, hashAlgorithmName);
+            throw new NotImplementedException();
         }
 
         public bool VerifyHash(byte[] rgbHash, string str, byte[] rgbSignature)
         {
-            if (rgbHash == null)
-                throw new ArgumentNullException("rgbHash");
-            if (rgbSignature == null)
-                throw new ArgumentNullException("rgbSignature");
-
-            HashAlgorithmName hashAlgorithmName = LookupHashAlgorithm(str);
-            return _defer.VerifyHash(rgbHash, rgbSignature, hashAlgorithmName);
+            throw new NotImplementedException();
         }
 
         public CspKeyContainerInfo CspKeyContainerInfo
@@ -205,126 +167,6 @@ namespace System.Security.Cryptography
             {
                 throw new PlatformNotSupportedException();
             } 
-        }
-
-        private static HashAlgorithmName LookupHashAlgorithm(object halg)
-        {
-            string algString = halg as string;
-
-            if (algString != null)
-            {
-                return LookupHashAlgorithm(algString);
-            }
-
-            HashAlgorithm hashAlgorithmInstance = halg as HashAlgorithm;
-
-            if (hashAlgorithmInstance != null)
-            {
-                return LookupHashAlgorithm(hashAlgorithmInstance);
-            }
-
-            Type hashAlgorithmType = halg as Type;
-
-            if (hashAlgorithmType != null)
-            {
-                return LookupHashAlgorithm(hashAlgorithmType);
-            }
-
-            throw new ArgumentException(SR.Argument_InvalidValue);
-        }
-
-        private static HashAlgorithmName LookupHashAlgorithm(Type hashAlgorithmType)
-        {
-            TypeInfo hashAlgTypeInfo = hashAlgorithmType.GetTypeInfo();
-
-            if (typeof(MD5).GetTypeInfo().IsAssignableFrom(hashAlgTypeInfo))
-            {
-                return HashAlgorithmName.MD5;
-            }
-
-            if (typeof(SHA1).GetTypeInfo().IsAssignableFrom(hashAlgTypeInfo))
-            {
-                return HashAlgorithmName.SHA1;
-            }
-
-            if (typeof(SHA256).GetTypeInfo().IsAssignableFrom(hashAlgTypeInfo))
-            {
-                return HashAlgorithmName.SHA256;
-            }
-
-            if (typeof(SHA384).GetTypeInfo().IsAssignableFrom(hashAlgTypeInfo))
-            {
-                return HashAlgorithmName.SHA384;
-            }
-
-            if (typeof(SHA512).GetTypeInfo().IsAssignableFrom(hashAlgTypeInfo))
-            {
-                return HashAlgorithmName.SHA512;
-            }
-
-            throw new ArgumentException(SR.Argument_InvalidValue);
-        }
-
-        private static HashAlgorithmName LookupHashAlgorithm(HashAlgorithm hashAlgorithm)
-        {
-            if (hashAlgorithm is MD5)
-            {
-                return HashAlgorithmName.MD5;
-            }
-
-            if (hashAlgorithm is SHA1)
-            {
-                return HashAlgorithmName.SHA1;
-            }
-
-            if (hashAlgorithm is SHA256)
-            {
-                return HashAlgorithmName.SHA256;
-            }
-
-            if (hashAlgorithm is SHA384)
-            {
-                return HashAlgorithmName.SHA384;
-            }
-
-            if (hashAlgorithm is SHA512)
-            {
-                return HashAlgorithmName.SHA512;
-            }
-
-            throw new ArgumentException(SR.Argument_InvalidValue);
-        }
-
-        private static HashAlgorithmName LookupHashAlgorithm(string algString)
-        {
-            const string Md5Oid = "1.2.840.113549.2.5";
-            const string Sha1Oid = "1.3.14.3.2.26";
-            const string Sha256Oid = "2.16.840.1.101.3.4.2.1";
-            const string Sha384Oid = "2.16.840.1.101.3.4.2.2";
-            const string Sha512Oid = "2.16.840.1.101.3.4.2.3";
-
-            if (algString.Length > 0 && !char.IsDigit(algString[0]))
-            {
-                // If algString is an understood OID FriendlyName it will become the numeric OID,
-                // otherwise it will remain as it was.
-                algString = new Oid(algString).Value ?? algString;
-            }
-
-            switch (algString)
-            {
-                case Md5Oid:
-                    return HashAlgorithmName.MD5;
-                case Sha1Oid:
-                    return HashAlgorithmName.SHA1;
-                case Sha256Oid:
-                    return HashAlgorithmName.SHA256;
-                case Sha384Oid:
-                    return HashAlgorithmName.SHA384;
-                case Sha512Oid:
-                    return HashAlgorithmName.SHA512;
-            }
-
-            throw new CryptographicException(SR.Cryptography_InvalidOID);
         }
     }
 }

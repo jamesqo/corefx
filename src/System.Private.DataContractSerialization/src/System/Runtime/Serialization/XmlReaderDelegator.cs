@@ -357,7 +357,7 @@ namespace System.Runtime.Serialization
                 return null;
             str = str.Trim();
             if (str.Length == 0)
-                return Array.Empty<byte>();
+                return new byte[0];
 
             try
             {

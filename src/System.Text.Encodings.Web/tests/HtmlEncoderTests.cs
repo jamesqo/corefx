@@ -13,12 +13,10 @@ namespace Microsoft.Framework.WebEncoders
     public class HtmlEncoderTests
     {
         [Fact]
-        public void Ctor_WithTextEncoderSettings()
+        public void Ctor_WithCodePointFilter()
         {
             // Arrange
-            var filter = new TextEncoderSettings();
-            filter.AllowCharacters('a', 'b');
-            filter.AllowCharacters('\0', '&', '\uFFFF', 'd');
+            var filter = new CodePointFilter().AllowCharacters("ab").AllowCharacters('\0', '&', '\uFFFF', 'd');
             HtmlEncoder encoder = new HtmlEncoder(filter);
 
             // Act & assert

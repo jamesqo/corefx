@@ -3,13 +3,12 @@
 
 internal static partial class Interop
 {
-    internal static class Libraries
+    private static class Libraries
     {
         internal const string BCrypt = "BCrypt.dll";
         internal const string Console_L1 = "api-ms-win-core-console-l1-1-0.dll";
         internal const string Console_L2 = "api-ms-win-core-console-l2-1-0.dll";
         internal const string CoreFile_L1 = "api-ms-win-core-file-l1-1-0.dll";
-        internal const string CoreFile_L1_2 = "api-ms-win-core-file-l1-2-0.dll";
         internal const string CoreFile_L2 = "api-ms-win-core-file-l2-1-0.dll";
         internal const string Crypt32 = "crypt32.dll";
         internal const string Debug = "api-ms-win-core-debug-l1-1-0.dll";
@@ -20,7 +19,6 @@ internal static partial class Interop
         internal const string Kernel32 = "kernel32.dll";
         internal const string Kernel32_L1 = "api-ms-win-core-kernel32-legacy-l1-1-1.dll";
         internal const string Kernel32_L2 = "api-ms-win-core-kernel32-legacy-l1-1-0.dll";
-        internal const string LibraryLoader = "api-ms-win-core-libraryloader-l1-1-0.dll";
         internal const string Localization = "api-ms-win-core-localization-l1-2-0.dll";
         internal const string Memory_L1_0 = "api-ms-win-core-memory-l1-1-0.dll";
         internal const string Memory_L1_1 = "api-ms-win-core-memory-l1-1-1.dll";
@@ -52,7 +50,6 @@ internal static partial class Interop
         internal const string SystemInfo = "api-ms-win-core-sysinfo-l1-1-0.dll";
         internal const string User32 = "user32.dll";
         internal const string Version = "api-ms-win-core-version-l1-1-0.dll";
-        internal const string WinHttp = "winhttp.dll";
         internal const string Wow64 = "api-ms-win-core-wow64-l1-1-0.dll";
         internal const string Zlib = "clrcompression.dll";
     }

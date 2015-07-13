@@ -28,8 +28,20 @@ namespace System.Reflection.Internal
         {
             if (unchecked((ulong)(uint)offset + (uint)byteCount) > (ulong)Length)
             {
-                Throw.OutOfBounds();
+                ThrowOutOfBounds();
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowOutOfBounds()
+        {
+            throw new BadImageFormatException(MetadataResources.OutOfBoundsRead);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowReferenceOverflow()
+        {
+            throw new BadImageFormatException(MetadataResources.RowIdOrHeapOffsetTooLarge);
         }
 
         internal byte[] ToArray()
@@ -164,7 +176,7 @@ namespace System.Reflection.Internal
 
             if (!TokenTypeIds.IsValidRowId(value))
             {
-                Throw.ReferenceOverflow();
+                ThrowReferenceOverflow();
             }
 
             return (int)value;
@@ -182,7 +194,7 @@ namespace System.Reflection.Internal
 
             if (!HeapHandleType.IsValidHeapOffset(value))
             {
-                Throw.ReferenceOverflow();
+                ThrowReferenceOverflow();
             }
 
             return (int)value;

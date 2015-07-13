@@ -37,8 +37,8 @@ namespace System.Runtime.Serialization.Json
         private int _maxItemsInObjectGraph;
         private DataContract _rootContract; // post-surrogate
         private XmlDictionaryString _rootName;
-#if !NET_NATIVE && !MERGE_DCJS
         private JavaScriptSerializer _jsonSerializer;
+#if !NET_NATIVE
         private JavaScriptDeserializer _jsonDeserializer;
 #endif
         private bool _rootNameRequiresMapping;
@@ -47,7 +47,7 @@ namespace System.Runtime.Serialization.Json
         private DateTimeFormat _dateTimeFormat;
         private bool _useSimpleDictionaryFormat;
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         private DataContractJsonSerializerImpl _serializer;
         public DataContractJsonSerializer(Type type)
         {
@@ -61,7 +61,7 @@ namespace System.Runtime.Serialization.Json
 
         public DataContractJsonSerializer(Type type, IEnumerable<Type> knownTypes)
         {
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
             _serializer = new DataContractJsonSerializerImpl(type, knownTypes);
 #else
             Initialize(type, knownTypes);
@@ -70,7 +70,7 @@ namespace System.Runtime.Serialization.Json
 
         public DataContractJsonSerializer(Type type, DataContractJsonSerializerSettings settings)
         {
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
             _serializer = new DataContractJsonSerializerImpl(type, settings);
 #else
             if (settings == null)
@@ -284,7 +284,7 @@ namespace System.Runtime.Serialization.Json
 
         public void WriteObject(Stream stream, object graph)
         {
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
             _serializer.WriteObject(stream, graph);
 #else
             _jsonSerializer = new JavaScriptSerializer(stream);
@@ -328,12 +328,10 @@ namespace System.Runtime.Serialization.Json
 #endif
         }
 
-#if !NET_NATIVE && !MERGE_DCJS
         internal void WriteObjectInternal(object value, DataContract contract, XmlObjectSerializerWriteContextComplexJson context, bool writeServerType, RuntimeTypeHandle declaredTypeHandle)
         {
             _jsonSerializer.SerializeObject(ConvertDataContractToObject(value, contract, context, writeServerType, declaredTypeHandle));
         }
-#endif
 
         internal object ConvertDataContractToObject(object value, DataContract contract, XmlObjectSerializerWriteContextComplexJson context, bool writeServerType, RuntimeTypeHandle declaredTypeHandle)
         {
@@ -426,7 +424,7 @@ namespace System.Runtime.Serialization.Json
 
         public object ReadObject(Stream stream)
         {
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
             return _serializer.ReadObject(stream);
 #else
             try
@@ -871,7 +869,7 @@ namespace System.Runtime.Serialization.Json
             return (xmlName == null) ? null : new XmlDictionary().Add(ConvertXmlNameToJsonName(xmlName.Value));
         }
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         internal static object ReadJsonValue(DataContract contract, XmlReaderDelegator reader, XmlObjectSerializerReadContextComplexJson context)
         {
             return JsonDataContract.GetJsonDataContract(contract).ReadJsonValue(reader, context);
@@ -884,7 +882,7 @@ namespace System.Runtime.Serialization.Json
 #endif
     }
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
     internal sealed class DataContractJsonSerializerImpl : XmlObjectSerializer
     {
         internal IList<Type> knownTypeList;

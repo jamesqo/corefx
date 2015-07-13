@@ -10,6 +10,7 @@ using System.Security;
 using System.Text;
 using System.Xml;
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization.Json
 {
     internal class XmlJsonWriter : XmlDictionaryWriter, IXmlJsonWriterInitializer
@@ -1579,3 +1580,4 @@ namespace System.Runtime.Serialization.Json
         }
     }
 }
+#endif

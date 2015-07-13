@@ -136,7 +136,7 @@ namespace System.IO
             if (bufferSize <= 0)
                 throw new ArgumentOutOfRangeException("bufferSize", SR.ArgumentOutOfRange_NeedNonNegNum);
             if (handle.IsAsync.HasValue && useAsyncIO != handle.IsAsync.Value)
-                throw new ArgumentException(SR.Arg_HandleNotAsync, "handle");
+                throw new ArgumentException(SR.Arg_HandleNotAsync);
 
             _fileHandle = handle;
             _access = access;
@@ -912,7 +912,7 @@ namespace System.IO
             }
             if (array.Length - offset < count)
             {
-                throw new ArgumentException(SR.Argument_InvalidOffLen /*, no good single parameter name to pass*/);
+                throw new ArgumentException(SR.Argument_InvalidOffLen);
             }
             if (_fileHandle.IsClosed)
             {

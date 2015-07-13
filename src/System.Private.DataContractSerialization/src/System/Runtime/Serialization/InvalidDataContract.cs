@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization
 {
 
@@ -68,3 +69,5 @@ namespace System.Runtime.Serialization
         }
     }
 }
+#endif
+

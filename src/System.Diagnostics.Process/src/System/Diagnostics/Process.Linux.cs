@@ -146,7 +146,8 @@ namespace System.Diagnostics
         private static string GetExePath()
         {
             // Determine the maximum size of a path
-            int maxPath = Interop.libc.MaxPath;
+            int maxPath = -1;
+            Interop.libc.GetPathConfValue(ref maxPath, Interop.libc.PathConfNames._PC_PATH_MAX, Interop.libc.DEFAULT_PC_PATH_MAX);
 
             // Start small with a buffer allocation, and grow only up to the max path
             for (int pathLen = 256; pathLen < maxPath; pathLen *= 2)

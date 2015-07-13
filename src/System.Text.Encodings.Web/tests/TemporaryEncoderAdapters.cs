@@ -45,15 +45,15 @@ namespace Microsoft.Framework.WebEncoders
         {
             _encoder = System.Text.Encodings.Web.DefaultHtmlEncoder.Singleton;
         }
-        public HtmlEncoder(TextEncoderSettings filter)
+        public HtmlEncoder(CodePointFilter filter)
         {
             _encoder = new System.Text.Encodings.Web.DefaultHtmlEncoder(filter);
         }
 
-        public HtmlEncoder(UnicodeRange allowedRange) : this(new TextEncoderSettings(allowedRange))
+        public HtmlEncoder(UnicodeRange allowedRange) : this(new CodePointFilter(allowedRange))
         { }
 
-        public HtmlEncoder(params UnicodeRange[] allowedRanges) : this(new TextEncoderSettings(allowedRanges))
+        public HtmlEncoder(params UnicodeRange[] allowedRanges) : this(new CodePointFilter(allowedRanges))
         { }
 
         public void HtmlEncode(char[] value, int startIndex, int characterCount, TextWriter output)
@@ -108,15 +108,15 @@ namespace Microsoft.Framework.WebEncoders
         {
             _encoder = System.Text.Encodings.Web.DefaultJavaScriptEncoder.Singleton;
         }
-        public JavaScriptStringEncoder(TextEncoderSettings filter)
+        public JavaScriptStringEncoder(CodePointFilter filter)
         {
             _encoder = new System.Text.Encodings.Web.DefaultJavaScriptEncoder(filter);
         }
 
-        public JavaScriptStringEncoder(UnicodeRange allowedRange) : this(new TextEncoderSettings(allowedRange))
+        public JavaScriptStringEncoder(UnicodeRange allowedRange) : this(new CodePointFilter(allowedRange))
         { }
 
-        public JavaScriptStringEncoder(params UnicodeRange[] allowedRanges) : this(new TextEncoderSettings(allowedRanges))
+        public JavaScriptStringEncoder(params UnicodeRange[] allowedRanges) : this(new CodePointFilter(allowedRanges))
         { }
 
         public void JavaScriptStringEncode(char[] value, int startIndex, int characterCount, TextWriter output)
@@ -171,15 +171,15 @@ namespace Microsoft.Framework.WebEncoders
         {
             _encoder = System.Text.Encodings.Web.DefaultUrlEncoder.Singleton;
         }
-        public UrlEncoder(TextEncoderSettings filter)
+        public UrlEncoder(CodePointFilter filter)
         {
             _encoder = new System.Text.Encodings.Web.DefaultUrlEncoder(filter);
         }
 
-        public UrlEncoder(UnicodeRange allowedRange) : this(new TextEncoderSettings(allowedRange))
+        public UrlEncoder(UnicodeRange allowedRange) : this(new CodePointFilter(allowedRange))
         { }
 
-        public UrlEncoder(params UnicodeRange[] allowedRanges) : this(new TextEncoderSettings(allowedRanges))
+        public UrlEncoder(params UnicodeRange[] allowedRanges) : this(new CodePointFilter(allowedRanges))
         { }
 
         public void UrlEncode(char[] value, int startIndex, int characterCount, TextWriter output)

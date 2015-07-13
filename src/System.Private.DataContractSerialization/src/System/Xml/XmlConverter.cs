@@ -700,7 +700,7 @@ namespace System.Xml
             return true;
         }
 
-#if NET_NATIVE || MERGE_DCJS
+#if NET_NATIVE
         static public int ToChars(int value, byte[] chars, int offset)
         {
             int count = ToCharsR(value, chars, offset + MaxInt32Chars);

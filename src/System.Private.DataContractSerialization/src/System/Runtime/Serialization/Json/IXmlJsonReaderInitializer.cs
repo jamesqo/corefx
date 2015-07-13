@@ -6,6 +6,7 @@ using System.Text;
 using System.Xml;
 using System.Runtime.CompilerServices;
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization.Json
 {
     internal interface IXmlJsonReaderInitializer
@@ -17,3 +18,4 @@ namespace System.Runtime.Serialization.Json
             OnXmlDictionaryReaderClose onClose);
     }
 }
+#endif

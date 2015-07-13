@@ -25,6 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AllowedCharsBitmapTests.cs" />
+    <Compile Include="CodePointFilterTests.cs" />
     <Compile Include="CommonTestEncoder.cs" />
     <Compile Include="EncoderCommon.cs" />
     <Compile Include="EncoderCommonTests.cs" />
@@ -39,7 +40,6 @@
     <Compile Include="TemporaryEncoderAdapters.cs" />
     <Compile Include="TemporaryEncoderExtensions.cs" />
     <Compile Include="TemporaryInternalTypes.cs" />
-    <Compile Include="TextEncoderSettingsTests.cs" />
     <Compile Include="UnicodeEncoderBase.cs" />
     <Compile Include="UnicodeEncoderBaseTests.cs" />
     <Compile Include="UnicodeHelpersTests.cs" />

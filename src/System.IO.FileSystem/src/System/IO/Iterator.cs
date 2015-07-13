@@ -41,7 +41,7 @@ namespace System.IO
 
         public IEnumerator<TSource> GetEnumerator()
         {
-            if (state == 0 && _threadId == Environment.CurrentManagedThreadId)
+            if (_threadId == Environment.CurrentManagedThreadId && state == 0)
             {
                 state = 1;
                 return this;

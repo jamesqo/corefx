@@ -15,7 +15,6 @@ namespace System.Reflection.Metadata.Ecma335
         private Dictionary<NamespaceDefinitionHandle, NamespaceData> _namespaceTable;
         private NamespaceData _rootNamespace;
         private ImmutableArray<NamespaceDefinitionHandle> _namespaceList;
-        private uint _virtualNamespaceCounter;
 
         internal NamespaceCache(MetadataReader reader)
         {
@@ -52,9 +51,16 @@ namespace System.Reflection.Metadata.Ecma335
             NamespaceData result;
             if (!_namespaceTable.TryGetValue(handle, out result))
             {
-                Throw.InvalidHandle();
+                ThrowInvalidHandle();
             }
             return result;
+        }
+
+        // TODO: move throw helpers to common place. 
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        private static void ThrowInvalidHandle()
+        {
+            throw new BadImageFormatException(MetadataResources.InvalidHandle);
         }
 
         /// <summary>
@@ -115,7 +121,7 @@ namespace System.Reflection.Metadata.Ecma335
 
                 // Make sure to add entry for root namespace. The root namespace is special in that even
                 // though it might not have types of its own it always has an equivalent representation
-                // as a nil handle and we don't want to handle it below as dot-terminated virtual namespace.
+                // as a nil handle and we don't want to handle it below as dot-terminated synthetic namespace.
                 // We use NamespaceDefinitionHandle.FromIndexOfFullName(0) instead of default(NamespaceDefinitionHandle) so
                 // that we never hand back a handle to the user that doesn't have a typeid as that prevents
                 // round-trip conversion to Handle and back. (We may discover other handle aliases for the
@@ -134,8 +140,8 @@ namespace System.Reflection.Metadata.Ecma335
                 Dictionary<string, NamespaceDataBuilder> stringTable;
                 MergeDuplicateNamespaces(namespaceBuilderTable, out stringTable);
 
-                List<NamespaceDataBuilder> virtualNamespaces;
-                ResolveParentChildRelationships(stringTable, out virtualNamespaces);
+                List<NamespaceDataBuilder> syntheticNamespaces;
+                ResolveParentChildRelationships(stringTable, out syntheticNamespaces);
 
                 var namespaceTable = new Dictionary<NamespaceDefinitionHandle, NamespaceData>();
 
@@ -146,11 +152,11 @@ namespace System.Reflection.Metadata.Ecma335
                     namespaceTable.Add(group.Key, group.Value.Freeze());
                 }
 
-                if (virtualNamespaces != null)
+                if (syntheticNamespaces != null)
                 {
-                    foreach (var virtualNamespace in virtualNamespaces)
+                    foreach (var syntheticNamespace in syntheticNamespaces)
                     {
-                        namespaceTable.Add(virtualNamespace.Handle, virtualNamespace.Freeze());
+                        namespaceTable.Add(syntheticNamespace.Handle, syntheticNamespace.Freeze());
                     }
                 }
 
@@ -220,7 +226,7 @@ namespace System.Reflection.Metadata.Ecma335
             }
 
             StringHandle simpleName = GetSimpleName(realChild, numberOfSegments);
-            var namespaceHandle = NamespaceDefinitionHandle.FromVirtualIndex(++_virtualNamespaceCounter);
+            var namespaceHandle = NamespaceDefinitionHandle.FromSimpleNameOffset(simpleName.GetHeapOffset());
             return new NamespaceDataBuilder(namespaceHandle, simpleName, fullName);
         }
 
@@ -237,11 +243,11 @@ namespace System.Reflection.Metadata.Ecma335
 
         /// <summary>
         /// Links a child to its parent namespace. If the parent namespace doesn't exist, this will create a
-        /// virtual one. This will automatically link any virtual namespaces it creates up to its parents.
+        /// synthetic one. This will automatically link any synthetic namespaces it creates up to its parents.
         /// </summary>
         private void LinkChildToParentNamespace(Dictionary<string, NamespaceDataBuilder> existingNamespaces,
             NamespaceDataBuilder realChild,
-            ref List<NamespaceDataBuilder> virtualNamespaces)
+            ref List<NamespaceDataBuilder> syntheticNamespaces)
         {
             Debug.Assert(realChild.Handle.HasFullName);
             string childName = realChild.FullName;
@@ -278,9 +284,9 @@ namespace System.Reflection.Metadata.Ecma335
                     return;
                 }
 
-                if (virtualNamespaces != null)
+                if (syntheticNamespaces != null)
                 {
-                    foreach (var data in virtualNamespaces)
+                    foreach (var data in syntheticNamespaces)
                     {
                         if (data.FullName == parentName)
                         {
@@ -291,14 +297,14 @@ namespace System.Reflection.Metadata.Ecma335
                 }
                 else
                 {
-                    virtualNamespaces = new List<NamespaceDataBuilder>();
+                    syntheticNamespaces = new List<NamespaceDataBuilder>();
                 }
 
-                var virtualParent = SynthesizeNamespaceData(parentName, realChild.Handle);
-                LinkChildDataToParentData(child, virtualParent);
-                virtualNamespaces.Add(virtualParent);
-                childName = virtualParent.FullName;
-                child = virtualParent;
+                var syntheticParent = SynthesizeNamespaceData(parentName, realChild.Handle);
+                LinkChildDataToParentData(child, syntheticParent);
+                syntheticNamespaces.Add(syntheticParent);
+                childName = syntheticParent.FullName;
+                child = syntheticParent;
             }
         }
 
@@ -306,15 +312,15 @@ namespace System.Reflection.Metadata.Ecma335
         /// This will link all parents/children in the given namespaces dictionary up to each other.
         /// 
         /// In some cases, we need to synthesize namespaces that do not have any type definitions or forwarders
-        /// of their own, but do have child namespaces. These are returned via the virtualNamespaces out
+        /// of their own, but do have child namespaces. These are returned via the syntheticNamespaces out
         /// parameter.
         /// </summary>
-        private void ResolveParentChildRelationships(Dictionary<string, NamespaceDataBuilder> namespaces, out List<NamespaceDataBuilder> virtualNamespaces)
+        private void ResolveParentChildRelationships(Dictionary<string, NamespaceDataBuilder> namespaces, out List<NamespaceDataBuilder> syntheticNamespaces)
         {
-            virtualNamespaces = null;
+            syntheticNamespaces = null;
             foreach (var namespaceData in namespaces.Values)
             {
-                LinkChildToParentNamespace(namespaces, namespaceData, ref virtualNamespaces);
+                LinkChildToParentNamespace(namespaces, namespaceData, ref syntheticNamespaces);
             }
         }
 

@@ -4,6 +4,7 @@
 using System.Xml;
 using System.Security;
 
+#if NET_NATIVE
 namespace System.Runtime.Serialization.Json
 {
     internal class JsonEnumDataContract : JsonDataContract
@@ -73,3 +74,4 @@ namespace System.Runtime.Serialization.Json
         }
     }
 }
+#endif

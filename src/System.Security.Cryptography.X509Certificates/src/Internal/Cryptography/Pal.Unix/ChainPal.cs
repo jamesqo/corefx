@@ -25,27 +25,7 @@ namespace Internal.Cryptography.Pal
             DateTime verificationTime,
             TimeSpan timeout)
         {
-            CheckRevocationMode(revocationMode);
-
-            X509Certificate2 leaf = new X509Certificate2(cert.Handle);
-
-            X509Certificate2Collection candidates = OpenSslX509ChainProcessor.FindCandidates(leaf, extraStore);
-
-            return OpenSslX509ChainProcessor.BuildChain(
-                leaf,
-                candidates,
-                applicationPolicy,
-                certificatePolicy,
-                verificationTime);
-        }
-
-        private static void CheckRevocationMode(X509RevocationMode revocationMode)
-        {
-            if (revocationMode != X509RevocationMode.NoCheck)
-            {
-                // TODO (#2203): Add support for revocation once networking is ready.
-                throw new NotImplementedException(SR.WorkInProgress);
-            }
+            return new OpenSslX509ChainProcessor();
         }
     }
 }
