@@ -16,7 +16,7 @@ namespace System.Xml
 {
     internal abstract class XmlBaseWriter : XmlDictionaryWriter
     {
-        private XmlNodeWriter _writer;
+        private XmlStreamNodeWriter _writer;
         private NamespaceManager _nsMgr;
         private Element[] _elements;
         private int _depth;
@@ -28,7 +28,6 @@ namespace System.Xml
         private DocumentState _documentState;
         private byte[] _trailBytes;
         private int _trailByteCount;
-        private XmlStreamNodeWriter _nodeWriter;
         private bool _inList;
         private const string xmlnsNamespace = "http://www.w3.org/2000/xmlns/";
         private const string xmlNamespace = "http://www.w3.org/XML/1998/namespace";
@@ -45,7 +44,6 @@ namespace System.Xml
         {
             _inList = false;
             _writer = writer;
-            _nodeWriter = writer;
             _writeState = WriteState.Start;
             _documentState = DocumentState.None;
             _nsMgr.Clear();
@@ -87,7 +85,6 @@ namespace System.Xml
                 }
                 _attributeValue = null;
                 _attributeLocalName = null;
-                _nodeWriter.Close();
             }
         }
 
