@@ -192,7 +192,7 @@ namespace System.Runtime.Serialization.Json
                     try
                     {
                         _nodeWriter.Flush();
-                        _nodeWriter.Close();
+                        _nodeWriter.Dispose();
                     }
                     finally
                     {

@@ -1009,9 +1009,9 @@ namespace System.Xml
             _textNodeOffset = -1;
         }
 
-        public override void Close()
+        public override void Dispose()
         {
-            base.Close();
+            base.Dispose();
             _attributeValue.Clear();
         }
 

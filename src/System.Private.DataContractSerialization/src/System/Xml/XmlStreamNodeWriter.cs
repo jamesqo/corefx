@@ -439,7 +439,7 @@ namespace System.Xml
             _stream.Flush();
         }
 
-        public override void Close()
+        public override void Dispose()
         {
             if (_stream != null)
             {

@@ -14,10 +14,10 @@ using System.Collections.Generic;
 
 namespace System.Xml
 {
-    internal abstract class XmlNodeWriter
+    internal abstract class XmlNodeWriter : IDisposable
     {
         public abstract void Flush();
-        public abstract void Close();
+        public abstract void Dispose();
         public abstract void WriteDeclaration();
         public abstract void WriteComment(string text);
         public abstract void WriteCData(string text);
