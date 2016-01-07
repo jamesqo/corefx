@@ -207,7 +207,12 @@ namespace System.IO.IsolatedStorage
             {
                 // FileSystem APIs return the complete path of the matching files however Iso store only provided the FileName
                 // and hid the IsoStore root. Hence we find all the matching files from the fileSystem and simply return the fileNames.
-                return Directory.EnumerateFiles(_appFilesPath, searchPattern).Select(f => Path.GetFileName(f)).ToArray();
+                string[] results = Directory.GetFiles(_appFilesPath, searchPattern);
+                for (int i = 0; i < results.Length; i++)
+                {
+                    results[i] = Path.GetFileName(results[i]);
+                }
+                return results;
             }
             catch (UnauthorizedAccessException e)
             {
@@ -236,7 +241,12 @@ namespace System.IO.IsolatedStorage
             {
                 // FileSystem APIs return the complete path of the matching directories however Iso store only provided the directory name
                 // and hid the IsoStore root. Hence we find all the matching directories from the fileSystem and simply return their names.
-                return Directory.EnumerateDirectories(_appFilesPath, searchPattern).Select(m => m.Substring(Path.GetDirectoryName(m).Length + 1)).ToArray();
+                string[] results = Directory.GetDirectories(_appFilesPath, searchPattern);
+                for (int i = 0; i < results.Length; i++)
+                {
+                    results[i] = Path.GetFileName(results[i]);
+                }
+                return results;
             }
             catch (UnauthorizedAccessException e)
             {
