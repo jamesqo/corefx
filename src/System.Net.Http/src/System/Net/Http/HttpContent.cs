@@ -247,17 +247,26 @@ namespace System.Net.Http
         {
             CheckDisposed();
 
-            var tcs = new TaskCompletionSource<byte[]>(this);
+            var tcs = new TaskCompletionSource<byte[]>();
 
-            LoadIntoBufferAsync().ContinueWithStandard(tcs, (task, state) =>
+            if (IsBuffered)
             {
-                var innerTcs = (TaskCompletionSource<byte[]>)state;
-                var innerThis = (HttpContent)innerTcs.Task.AsyncState;
-                if (!HttpUtilities.HandleFaultsAndCancelation(task, innerTcs))
+                tcs.TrySetResult(_bufferedContent.ToArray());
+            }
+            else
+            {
+                CreateContentReadStreamAsync().ContinueWithStandard(tcs, (task, state) =>
                 {
-                    innerTcs.TrySetResult(innerThis._bufferedContent.ToArray());
-                }
-            });
+                    var innerTcs = (TaskCompletionSource<byte[]>)state;
+                    if (!HttpUtilities.HandleFaultsAndCancelation(task, innerTcs))
+                    {
+                        Stream stream = task.Result;
+                        if (!IsBuffered) _bufferedContent = stream;
+                        _contentReadStream = stream;
+                        innerTcs.TrySetResult(stream.ToArray());
+                    }
+                });
+            }
 
             return tcs.Task;
         }
