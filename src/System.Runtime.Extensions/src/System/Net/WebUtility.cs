@@ -375,7 +375,7 @@ namespace System.Net
         // This specific code was copied from above ASP.NET codebase.
         // Changes done - Removed the logic to handle %Uxxxx as it is not standards compliant.
 
-        private static string UrlDecodeInternal(string value, Encoding encoding)
+        private static string UrlDecodeInternal(string value)
         {
             if (value == null)
             {
@@ -383,7 +383,7 @@ namespace System.Net
             }
 
             int count = value.Length;
-            UrlDecoder helper = new UrlDecoder(count, encoding);
+            UrlDecoder helper = new UrlDecoder(count);
 
             // go through the string's chars collapsing %XX and
             // appending each char as char, with exception of %XX constructs
@@ -468,11 +468,10 @@ namespace System.Net
 
         #region UrlDecode public methods
 
-
         [SuppressMessage("Microsoft.Design", "CA1055:UriReturnValuesShouldNotBeStrings", Justification = "Already shipped public API; code moved here as part of API consolidation")]
         public static string UrlDecode(string encodedValue)
         {
-            return UrlDecodeInternal(encodedValue, Encoding.UTF8);
+            return UrlDecodeInternal(encodedValue);
         }
 
         public static byte[] UrlDecodeToBytes(byte[] encodedValue, int offset, int count)
@@ -619,22 +618,18 @@ namespace System.Net
             private int _numBytes;
             private byte[] _byteBuffer;
 
-            // Encoding to convert chars to bytes
-            private Encoding _encoding;
-
             private void FlushBytes()
             {
                 if (_numBytes > 0)
                 {
-                    _numChars += _encoding.GetChars(_byteBuffer, 0, _numBytes, _charBuffer, _numChars);
+                    _numChars += Encoding.UTF8.GetChars(_byteBuffer, 0, _numBytes, _charBuffer, _numChars);
                     _numBytes = 0;
                 }
             }
 
-            internal UrlDecoder(int bufferSize, Encoding encoding)
+            internal UrlDecoder(int bufferSize)
             {
                 _bufferSize = bufferSize;
-                _encoding = encoding;
 
                 _charBuffer = new char[bufferSize];
                 // byte buffer created on demand
