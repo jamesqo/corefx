@@ -381,6 +381,30 @@ namespace System.Net
             {
                 return null;
             }
+            
+            // Just return `value` if it's already decoded
+            bool decoded = true;
+            for (int i = 0; i < value.Length; i++)
+            {
+                char ch = value[i];
+                if (ch == '+') // spaces
+                {
+                    decoded = false;
+                    break;
+                }
+                else if (ch == '%' && i < value.Length - 2) // %XX
+                {
+                    // Make sure it's a valid hex number
+                    if (HexToInt(value[i + 1]) != -1 && HexToInt(value[i + 2]) != -1)
+                    {
+                        decoded = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (decoded)
+                return value;
 
             int count = value.Length;
             UrlDecoder helper = new UrlDecoder(count);
