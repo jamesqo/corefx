@@ -673,283 +673,269 @@ namespace System.Net
         // helper class for lookup of HTML encoding entities
         private static class HtmlEntities
         {
-#if DEBUG
-            static HtmlEntities()
-            {
-                // Make sure the initial capacity for s_lookupTable is correct
-                Debug.Assert(s_lookupTable.Count == Count, $"There should be {Count} HTML entities, but {nameof(s_lookupTable)} has {s_lookupTable.Count} of them.");
-            }
-#endif
-
-            // The list is from http://www.w3.org/TR/REC-html40/sgml/entities.html, except for &apos;, which
-            // is defined in http://www.w3.org/TR/2008/REC-xml-20081126/#sec-predefined-ent.
-
-            private const int Count = 253;
-
-            // maps entity strings => unicode chars
-            private static readonly LowLevelDictionary<string, char> s_lookupTable =
-                new LowLevelDictionary<string, char>(Count, StringComparer.Ordinal)
-                {
-                    ["quot"] = '\x0022',
-                    ["amp"] = '\x0026',
-                    ["apos"] = '\x0027',
-                    ["lt"] = '\x003c',
-                    ["gt"] = '\x003e',
-                    ["nbsp"] = '\x00a0',
-                    ["iexcl"] = '\x00a1',
-                    ["cent"] = '\x00a2',
-                    ["pound"] = '\x00a3',
-                    ["curren"] = '\x00a4',
-                    ["yen"] = '\x00a5',
-                    ["brvbar"] = '\x00a6',
-                    ["sect"] = '\x00a7',
-                    ["uml"] = '\x00a8',
-                    ["copy"] = '\x00a9',
-                    ["ordf"] = '\x00aa',
-                    ["laquo"] = '\x00ab',
-                    ["not"] = '\x00ac',
-                    ["shy"] = '\x00ad',
-                    ["reg"] = '\x00ae',
-                    ["macr"] = '\x00af',
-                    ["deg"] = '\x00b0',
-                    ["plusmn"] = '\x00b1',
-                    ["sup2"] = '\x00b2',
-                    ["sup3"] = '\x00b3',
-                    ["acute"] = '\x00b4',
-                    ["micro"] = '\x00b5',
-                    ["para"] = '\x00b6',
-                    ["middot"] = '\x00b7',
-                    ["cedil"] = '\x00b8',
-                    ["sup1"] = '\x00b9',
-                    ["ordm"] = '\x00ba',
-                    ["raquo"] = '\x00bb',
-                    ["frac14"] = '\x00bc',
-                    ["frac12"] = '\x00bd',
-                    ["frac34"] = '\x00be',
-                    ["iquest"] = '\x00bf',
-                    ["Agrave"] = '\x00c0',
-                    ["Aacute"] = '\x00c1',
-                    ["Acirc"] = '\x00c2',
-                    ["Atilde"] = '\x00c3',
-                    ["Auml"] = '\x00c4',
-                    ["Aring"] = '\x00c5',
-                    ["AElig"] = '\x00c6',
-                    ["Ccedil"] = '\x00c7',
-                    ["Egrave"] = '\x00c8',
-                    ["Eacute"] = '\x00c9',
-                    ["Ecirc"] = '\x00ca',
-                    ["Euml"] = '\x00cb',
-                    ["Igrave"] = '\x00cc',
-                    ["Iacute"] = '\x00cd',
-                    ["Icirc"] = '\x00ce',
-                    ["Iuml"] = '\x00cf',
-                    ["ETH"] = '\x00d0',
-                    ["Ntilde"] = '\x00d1',
-                    ["Ograve"] = '\x00d2',
-                    ["Oacute"] = '\x00d3',
-                    ["Ocirc"] = '\x00d4',
-                    ["Otilde"] = '\x00d5',
-                    ["Ouml"] = '\x00d6',
-                    ["times"] = '\x00d7',
-                    ["Oslash"] = '\x00d8',
-                    ["Ugrave"] = '\x00d9',
-                    ["Uacute"] = '\x00da',
-                    ["Ucirc"] = '\x00db',
-                    ["Uuml"] = '\x00dc',
-                    ["Yacute"] = '\x00dd',
-                    ["THORN"] = '\x00de',
-                    ["szlig"] = '\x00df',
-                    ["agrave"] = '\x00e0',
-                    ["aacute"] = '\x00e1',
-                    ["acirc"] = '\x00e2',
-                    ["atilde"] = '\x00e3',
-                    ["auml"] = '\x00e4',
-                    ["aring"] = '\x00e5',
-                    ["aelig"] = '\x00e6',
-                    ["ccedil"] = '\x00e7',
-                    ["egrave"] = '\x00e8',
-                    ["eacute"] = '\x00e9',
-                    ["ecirc"] = '\x00ea',
-                    ["euml"] = '\x00eb',
-                    ["igrave"] = '\x00ec',
-                    ["iacute"] = '\x00ed',
-                    ["icirc"] = '\x00ee',
-                    ["iuml"] = '\x00ef',
-                    ["eth"] = '\x00f0',
-                    ["ntilde"] = '\x00f1',
-                    ["ograve"] = '\x00f2',
-                    ["oacute"] = '\x00f3',
-                    ["ocirc"] = '\x00f4',
-                    ["otilde"] = '\x00f5',
-                    ["ouml"] = '\x00f6',
-                    ["divide"] = '\x00f7',
-                    ["oslash"] = '\x00f8',
-                    ["ugrave"] = '\x00f9',
-                    ["uacute"] = '\x00fa',
-                    ["ucirc"] = '\x00fb',
-                    ["uuml"] = '\x00fc',
-                    ["yacute"] = '\x00fd',
-                    ["thorn"] = '\x00fe',
-                    ["yuml"] = '\x00ff',
-                    ["OElig"] = '\x0152',
-                    ["oelig"] = '\x0153',
-                    ["Scaron"] = '\x0160',
-                    ["scaron"] = '\x0161',
-                    ["Yuml"] = '\x0178',
-                    ["fnof"] = '\x0192',
-                    ["circ"] = '\x02c6',
-                    ["tilde"] = '\x02dc',
-                    ["Alpha"] = '\x0391',
-                    ["Beta"] = '\x0392',
-                    ["Gamma"] = '\x0393',
-                    ["Delta"] = '\x0394',
-                    ["Epsilon"] = '\x0395',
-                    ["Zeta"] = '\x0396',
-                    ["Eta"] = '\x0397',
-                    ["Theta"] = '\x0398',
-                    ["Iota"] = '\x0399',
-                    ["Kappa"] = '\x039a',
-                    ["Lambda"] = '\x039b',
-                    ["Mu"] = '\x039c',
-                    ["Nu"] = '\x039d',
-                    ["Xi"] = '\x039e',
-                    ["Omicron"] = '\x039f',
-                    ["Pi"] = '\x03a0',
-                    ["Rho"] = '\x03a1',
-                    ["Sigma"] = '\x03a3',
-                    ["Tau"] = '\x03a4',
-                    ["Upsilon"] = '\x03a5',
-                    ["Phi"] = '\x03a6',
-                    ["Chi"] = '\x03a7',
-                    ["Psi"] = '\x03a8',
-                    ["Omega"] = '\x03a9',
-                    ["alpha"] = '\x03b1',
-                    ["beta"] = '\x03b2',
-                    ["gamma"] = '\x03b3',
-                    ["delta"] = '\x03b4',
-                    ["epsilon"] = '\x03b5',
-                    ["zeta"] = '\x03b6',
-                    ["eta"] = '\x03b7',
-                    ["theta"] = '\x03b8',
-                    ["iota"] = '\x03b9',
-                    ["kappa"] = '\x03ba',
-                    ["lambda"] = '\x03bb',
-                    ["mu"] = '\x03bc',
-                    ["nu"] = '\x03bd',
-                    ["xi"] = '\x03be',
-                    ["omicron"] = '\x03bf',
-                    ["pi"] = '\x03c0',
-                    ["rho"] = '\x03c1',
-                    ["sigmaf"] = '\x03c2',
-                    ["sigma"] = '\x03c3',
-                    ["tau"] = '\x03c4',
-                    ["upsilon"] = '\x03c5',
-                    ["phi"] = '\x03c6',
-                    ["chi"] = '\x03c7',
-                    ["psi"] = '\x03c8',
-                    ["omega"] = '\x03c9',
-                    ["thetasym"] = '\x03d1',
-                    ["upsih"] = '\x03d2',
-                    ["piv"] = '\x03d6',
-                    ["ensp"] = '\x2002',
-                    ["emsp"] = '\x2003',
-                    ["thinsp"] = '\x2009',
-                    ["zwnj"] = '\x200c',
-                    ["zwj"] = '\x200d',
-                    ["lrm"] = '\x200e',
-                    ["rlm"] = '\x200f',
-                    ["ndash"] = '\x2013',
-                    ["mdash"] = '\x2014',
-                    ["lsquo"] = '\x2018',
-                    ["rsquo"] = '\x2019',
-                    ["sbquo"] = '\x201a',
-                    ["ldquo"] = '\x201c',
-                    ["rdquo"] = '\x201d',
-                    ["bdquo"] = '\x201e',
-                    ["dagger"] = '\x2020',
-                    ["Dagger"] = '\x2021',
-                    ["bull"] = '\x2022',
-                    ["hellip"] = '\x2026',
-                    ["permil"] = '\x2030',
-                    ["prime"] = '\x2032',
-                    ["Prime"] = '\x2033',
-                    ["lsaquo"] = '\x2039',
-                    ["rsaquo"] = '\x203a',
-                    ["oline"] = '\x203e',
-                    ["frasl"] = '\x2044',
-                    ["euro"] = '\x20ac',
-                    ["image"] = '\x2111',
-                    ["weierp"] = '\x2118',
-                    ["real"] = '\x211c',
-                    ["trade"] = '\x2122',
-                    ["alefsym"] = '\x2135',
-                    ["larr"] = '\x2190',
-                    ["uarr"] = '\x2191',
-                    ["rarr"] = '\x2192',
-                    ["darr"] = '\x2193',
-                    ["harr"] = '\x2194',
-                    ["crarr"] = '\x21b5',
-                    ["lArr"] = '\x21d0',
-                    ["uArr"] = '\x21d1',
-                    ["rArr"] = '\x21d2',
-                    ["dArr"] = '\x21d3',
-                    ["hArr"] = '\x21d4',
-                    ["forall"] = '\x2200',
-                    ["part"] = '\x2202',
-                    ["exist"] = '\x2203',
-                    ["empty"] = '\x2205',
-                    ["nabla"] = '\x2207',
-                    ["isin"] = '\x2208',
-                    ["notin"] = '\x2209',
-                    ["ni"] = '\x220b',
-                    ["prod"] = '\x220f',
-                    ["sum"] = '\x2211',
-                    ["minus"] = '\x2212',
-                    ["lowast"] = '\x2217',
-                    ["radic"] = '\x221a',
-                    ["prop"] = '\x221d',
-                    ["infin"] = '\x221e',
-                    ["ang"] = '\x2220',
-                    ["and"] = '\x2227',
-                    ["or"] = '\x2228',
-                    ["cap"] = '\x2229',
-                    ["cup"] = '\x222a',
-                    ["int"] = '\x222b',
-                    ["there4"] = '\x2234',
-                    ["sim"] = '\x223c',
-                    ["cong"] = '\x2245',
-                    ["asymp"] = '\x2248',
-                    ["ne"] = '\x2260',
-                    ["equiv"] = '\x2261',
-                    ["le"] = '\x2264',
-                    ["ge"] = '\x2265',
-                    ["sub"] = '\x2282',
-                    ["sup"] = '\x2283',
-                    ["nsub"] = '\x2284',
-                    ["sube"] = '\x2286',
-                    ["supe"] = '\x2287',
-                    ["oplus"] = '\x2295',
-                    ["otimes"] = '\x2297',
-                    ["perp"] = '\x22a5',
-                    ["sdot"] = '\x22c5',
-                    ["lceil"] = '\x2308',
-                    ["rceil"] = '\x2309',
-                    ["lfloor"] = '\x230a',
-                    ["rfloor"] = '\x230b',
-                    ["lang"] = '\x2329',
-                    ["rang"] = '\x232a',
-                    ["loz"] = '\x25ca',
-                    ["spades"] = '\x2660',
-                    ["clubs"] = '\x2663',
-                    ["hearts"] = '\x2665',
-                    ["diams"] = '\x2666',
-                };
-
+            // Maps entity strings => unicode chars
             public static char Lookup(string entity)
             {
-                char theChar;
-                s_lookupTable.TryGetValue(entity, out theChar);
-                return theChar;
+                switch (entity)
+                {
+                    // The list is from http://www.w3.org/TR/REC-html40/sgml/entities.html, except for &apos;, which
+                    // is defined in http://www.w3.org/TR/2008/REC-xml-20081126/#sec-predefined-ent.
+                    case "quot": return '\x0022';
+                    case "amp": return '\x0026';
+                    case "apos": return '\x0027';
+                    case "lt": return '\x003c';
+                    case "gt": return '\x003e';
+                    case "nbsp": return '\x00a0';
+                    case "iexcl": return '\x00a1';
+                    case "cent": return '\x00a2';
+                    case "pound": return '\x00a3';
+                    case "curren": return '\x00a4';
+                    case "yen": return '\x00a5';
+                    case "brvbar": return '\x00a6';
+                    case "sect": return '\x00a7';
+                    case "uml": return '\x00a8';
+                    case "copy": return '\x00a9';
+                    case "ordf": return '\x00aa';
+                    case "laquo": return '\x00ab';
+                    case "not": return '\x00ac';
+                    case "shy": return '\x00ad';
+                    case "reg": return '\x00ae';
+                    case "macr": return '\x00af';
+                    case "deg": return '\x00b0';
+                    case "plusmn": return '\x00b1';
+                    case "sup2": return '\x00b2';
+                    case "sup3": return '\x00b3';
+                    case "acute": return '\x00b4';
+                    case "micro": return '\x00b5';
+                    case "para": return '\x00b6';
+                    case "middot": return '\x00b7';
+                    case "cedil": return '\x00b8';
+                    case "sup1": return '\x00b9';
+                    case "ordm": return '\x00ba';
+                    case "raquo": return '\x00bb';
+                    case "frac14": return '\x00bc';
+                    case "frac12": return '\x00bd';
+                    case "frac34": return '\x00be';
+                    case "iquest": return '\x00bf';
+                    case "Agrave": return '\x00c0';
+                    case "Aacute": return '\x00c1';
+                    case "Acirc": return '\x00c2';
+                    case "Atilde": return '\x00c3';
+                    case "Auml": return '\x00c4';
+                    case "Aring": return '\x00c5';
+                    case "AElig": return '\x00c6';
+                    case "Ccedil": return '\x00c7';
+                    case "Egrave": return '\x00c8';
+                    case "Eacute": return '\x00c9';
+                    case "Ecirc": return '\x00ca';
+                    case "Euml": return '\x00cb';
+                    case "Igrave": return '\x00cc';
+                    case "Iacute": return '\x00cd';
+                    case "Icirc": return '\x00ce';
+                    case "Iuml": return '\x00cf';
+                    case "ETH": return '\x00d0';
+                    case "Ntilde": return '\x00d1';
+                    case "Ograve": return '\x00d2';
+                    case "Oacute": return '\x00d3';
+                    case "Ocirc": return '\x00d4';
+                    case "Otilde": return '\x00d5';
+                    case "Ouml": return '\x00d6';
+                    case "times": return '\x00d7';
+                    case "Oslash": return '\x00d8';
+                    case "Ugrave": return '\x00d9';
+                    case "Uacute": return '\x00da';
+                    case "Ucirc": return '\x00db';
+                    case "Uuml": return '\x00dc';
+                    case "Yacute": return '\x00dd';
+                    case "THORN": return '\x00de';
+                    case "szlig": return '\x00df';
+                    case "agrave": return '\x00e0';
+                    case "aacute": return '\x00e1';
+                    case "acirc": return '\x00e2';
+                    case "atilde": return '\x00e3';
+                    case "auml": return '\x00e4';
+                    case "aring": return '\x00e5';
+                    case "aelig": return '\x00e6';
+                    case "ccedil": return '\x00e7';
+                    case "egrave": return '\x00e8';
+                    case "eacute": return '\x00e9';
+                    case "ecirc": return '\x00ea';
+                    case "euml": return '\x00eb';
+                    case "igrave": return '\x00ec';
+                    case "iacute": return '\x00ed';
+                    case "icirc": return '\x00ee';
+                    case "iuml": return '\x00ef';
+                    case "eth": return '\x00f0';
+                    case "ntilde": return '\x00f1';
+                    case "ograve": return '\x00f2';
+                    case "oacute": return '\x00f3';
+                    case "ocirc": return '\x00f4';
+                    case "otilde": return '\x00f5';
+                    case "ouml": return '\x00f6';
+                    case "divide": return '\x00f7';
+                    case "oslash": return '\x00f8';
+                    case "ugrave": return '\x00f9';
+                    case "uacute": return '\x00fa';
+                    case "ucirc": return '\x00fb';
+                    case "uuml": return '\x00fc';
+                    case "yacute": return '\x00fd';
+                    case "thorn": return '\x00fe';
+                    case "yuml": return '\x00ff';
+                    case "OElig": return '\x0152';
+                    case "oelig": return '\x0153';
+                    case "Scaron": return '\x0160';
+                    case "scaron": return '\x0161';
+                    case "Yuml": return '\x0178';
+                    case "fnof": return '\x0192';
+                    case "circ": return '\x02c6';
+                    case "tilde": return '\x02dc';
+                    case "Alpha": return '\x0391';
+                    case "Beta": return '\x0392';
+                    case "Gamma": return '\x0393';
+                    case "Delta": return '\x0394';
+                    case "Epsilon": return '\x0395';
+                    case "Zeta": return '\x0396';
+                    case "Eta": return '\x0397';
+                    case "Theta": return '\x0398';
+                    case "Iota": return '\x0399';
+                    case "Kappa": return '\x039a';
+                    case "Lambda": return '\x039b';
+                    case "Mu": return '\x039c';
+                    case "Nu": return '\x039d';
+                    case "Xi": return '\x039e';
+                    case "Omicron": return '\x039f';
+                    case "Pi": return '\x03a0';
+                    case "Rho": return '\x03a1';
+                    case "Sigma": return '\x03a3';
+                    case "Tau": return '\x03a4';
+                    case "Upsilon": return '\x03a5';
+                    case "Phi": return '\x03a6';
+                    case "Chi": return '\x03a7';
+                    case "Psi": return '\x03a8';
+                    case "Omega": return '\x03a9';
+                    case "alpha": return '\x03b1';
+                    case "beta": return '\x03b2';
+                    case "gamma": return '\x03b3';
+                    case "delta": return '\x03b4';
+                    case "epsilon": return '\x03b5';
+                    case "zeta": return '\x03b6';
+                    case "eta": return '\x03b7';
+                    case "theta": return '\x03b8';
+                    case "iota": return '\x03b9';
+                    case "kappa": return '\x03ba';
+                    case "lambda": return '\x03bb';
+                    case "mu": return '\x03bc';
+                    case "nu": return '\x03bd';
+                    case "xi": return '\x03be';
+                    case "omicron": return '\x03bf';
+                    case "pi": return '\x03c0';
+                    case "rho": return '\x03c1';
+                    case "sigmaf": return '\x03c2';
+                    case "sigma": return '\x03c3';
+                    case "tau": return '\x03c4';
+                    case "upsilon": return '\x03c5';
+                    case "phi": return '\x03c6';
+                    case "chi": return '\x03c7';
+                    case "psi": return '\x03c8';
+                    case "omega": return '\x03c9';
+                    case "thetasym": return '\x03d1';
+                    case "upsih": return '\x03d2';
+                    case "piv": return '\x03d6';
+                    case "ensp": return '\x2002';
+                    case "emsp": return '\x2003';
+                    case "thinsp": return '\x2009';
+                    case "zwnj": return '\x200c';
+                    case "zwj": return '\x200d';
+                    case "lrm": return '\x200e';
+                    case "rlm": return '\x200f';
+                    case "ndash": return '\x2013';
+                    case "mdash": return '\x2014';
+                    case "lsquo": return '\x2018';
+                    case "rsquo": return '\x2019';
+                    case "sbquo": return '\x201a';
+                    case "ldquo": return '\x201c';
+                    case "rdquo": return '\x201d';
+                    case "bdquo": return '\x201e';
+                    case "dagger": return '\x2020';
+                    case "Dagger": return '\x2021';
+                    case "bull": return '\x2022';
+                    case "hellip": return '\x2026';
+                    case "permil": return '\x2030';
+                    case "prime": return '\x2032';
+                    case "Prime": return '\x2033';
+                    case "lsaquo": return '\x2039';
+                    case "rsaquo": return '\x203a';
+                    case "oline": return '\x203e';
+                    case "frasl": return '\x2044';
+                    case "euro": return '\x20ac';
+                    case "image": return '\x2111';
+                    case "weierp": return '\x2118';
+                    case "real": return '\x211c';
+                    case "trade": return '\x2122';
+                    case "alefsym": return '\x2135';
+                    case "larr": return '\x2190';
+                    case "uarr": return '\x2191';
+                    case "rarr": return '\x2192';
+                    case "darr": return '\x2193';
+                    case "harr": return '\x2194';
+                    case "crarr": return '\x21b5';
+                    case "lArr": return '\x21d0';
+                    case "uArr": return '\x21d1';
+                    case "rArr": return '\x21d2';
+                    case "dArr": return '\x21d3';
+                    case "hArr": return '\x21d4';
+                    case "forall": return '\x2200';
+                    case "part": return '\x2202';
+                    case "exist": return '\x2203';
+                    case "empty": return '\x2205';
+                    case "nabla": return '\x2207';
+                    case "isin": return '\x2208';
+                    case "notin": return '\x2209';
+                    case "ni": return '\x220b';
+                    case "prod": return '\x220f';
+                    case "sum": return '\x2211';
+                    case "minus": return '\x2212';
+                    case "lowast": return '\x2217';
+                    case "radic": return '\x221a';
+                    case "prop": return '\x221d';
+                    case "infin": return '\x221e';
+                    case "ang": return '\x2220';
+                    case "and": return '\x2227';
+                    case "or": return '\x2228';
+                    case "cap": return '\x2229';
+                    case "cup": return '\x222a';
+                    case "int": return '\x222b';
+                    case "there4": return '\x2234';
+                    case "sim": return '\x223c';
+                    case "cong": return '\x2245';
+                    case "asymp": return '\x2248';
+                    case "ne": return '\x2260';
+                    case "equiv": return '\x2261';
+                    case "le": return '\x2264';
+                    case "ge": return '\x2265';
+                    case "sub": return '\x2282';
+                    case "sup": return '\x2283';
+                    case "nsub": return '\x2284';
+                    case "sube": return '\x2286';
+                    case "supe": return '\x2287';
+                    case "oplus": return '\x2295';
+                    case "otimes": return '\x2297';
+                    case "perp": return '\x22a5';
+                    case "sdot": return '\x22c5';
+                    case "lceil": return '\x2308';
+                    case "rceil": return '\x2309';
+                    case "lfloor": return '\x230a';
+                    case "rfloor": return '\x230b';
+                    case "lang": return '\x2329';
+                    case "rang": return '\x232a';
+                    case "loz": return '\x25ca';
+                    case "spades": return '\x2660';
+                    case "clubs": return '\x2663';
+                    case "hearts": return '\x2665';
+                    case "diams": return '\x2666';
+                }
+                
+                return default(char);
             }
         }
     }
