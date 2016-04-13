@@ -81,7 +81,7 @@ namespace System.Security.Principal
                 // the ArgumentNullException (provided that the prior LSA calls didn't fail first.) To make this compat decision explicit, we'll null check ourselves 
                 // and simulate the exception from Encoding.Unicode.GetBytes().
                 if (sUserPrincipalName == null)
-                    throw new ArgumentNullException("s");
+                    throw new ArgumentNullException(nameof(sUserPrincipalName));
 
                 byte[] upnBytes = Encoding.Unicode.GetBytes(sUserPrincipalName);
                 if (upnBytes.Length > ushort.MaxValue)

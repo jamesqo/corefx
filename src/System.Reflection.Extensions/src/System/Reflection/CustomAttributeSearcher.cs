@@ -35,7 +35,7 @@ namespace System.Reflection
             if (!skipTypeValidation)
             {
                 if (optionalAttributeTypeFilter == null)
-                    throw new ArgumentNullException("type");
+                    throw new ArgumentNullException(nameof(optionalAttributeTypeFilter));
                 TypeInfo attributeTypeFilterInfo = optionalAttributeTypeFilter.GetTypeInfo();
                 if (!(optionalAttributeTypeFilter.Equals(CommonRuntimeTypes.Attribute) ||
                       attributeTypeFilterInfo.IsSubclassOf(CommonRuntimeTypes.Attribute)))

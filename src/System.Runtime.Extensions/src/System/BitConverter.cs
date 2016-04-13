@@ -330,7 +330,7 @@ namespace System
 
         private static char GetHexValue(int i)
         {
-            Debug.Assert(i >= 0 && i < 16, "i is out of range.");
+            Debug.Assert(i >= 0 && i < 16, $"{nameof(i)} is out of range.");
             if (i < 10)
             {
                 return (char)(i + '0');
