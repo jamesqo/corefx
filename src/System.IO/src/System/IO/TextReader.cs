@@ -129,7 +129,7 @@ namespace System.IO
         //
         public virtual string ReadLine()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = StringBuilderCache.Acquire();
             while (true)
             {
                 int ch = Read();
@@ -141,13 +141,13 @@ namespace System.IO
                         Read();
                     }
 
-                    return sb.ToString();
+                    return StringBuilderCache.GetStringAndRelease(sb);
                 }
                 sb.Append((char)ch);
             }
             if (sb.Length > 0)
             {
-                return sb.ToString();
+                return StringBuilderCache.GetStringAndRelease(sb);
             }
 
             return null;
