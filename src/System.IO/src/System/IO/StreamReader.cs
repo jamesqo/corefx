@@ -398,14 +398,14 @@ namespace System.IO
             CheckAsyncTaskInProgress();
 
             // Call ReadBuffer, then pull data out of charBuffer.
-            StringBuilder sb = new StringBuilder(_charLen - _charPos);
+            StringBuilder sb = StringBuilderCache.Acquire(_charLen - _charPos);
             do
             {
                 sb.Append(_charBuffer, _charPos, _charLen - _charPos);
                 _charPos = _charLen;  // Note we consumed these characters
                 ReadBuffer();
             } while (_charLen > 0);
-            return sb.ToString();
+            return StringBuilderCache.GetStringAndRelease(sb);
         }
 
         public override int ReadBlock(char[] buffer, int index, int count)
@@ -765,7 +765,7 @@ namespace System.IO
                         if (sb != null)
                         {
                             sb.Append(_charBuffer, _charPos, i - _charPos);
-                            s = sb.ToString();
+                            s = StringBuilderCache.GetStringAndRelease(sb);
                         }
                         else
                         {
@@ -786,11 +786,11 @@ namespace System.IO
                 i = _charLen - _charPos;
                 if (sb == null)
                 {
-                    sb = new StringBuilder(i + 80);
+                    sb = StringBuilderCache.Acquire(i + 80);
                 }
                 sb.Append(_charBuffer, _charPos, i);
             } while (ReadBuffer() > 0);
-            return sb.ToString();
+            return StringBuilderCache.GetStringAndRelease(sb);
         }
 
         #region Task based Async APIs
@@ -847,7 +847,7 @@ namespace System.IO
                         if (sb != null)
                         {
                             sb.Append(tmpCharBuffer, tmpCharPos, i - tmpCharPos);
-                            s = sb.ToString();
+                            s = StringBuilderCache.GetStringAndRelease(sb);
                         }
                         else
                         {
@@ -874,12 +874,12 @@ namespace System.IO
                 i = tmpCharLen - tmpCharPos;
                 if (sb == null)
                 {
-                    sb = new StringBuilder(i + 80);
+                    sb = StringBuilderCache.Acquire(i + 80);
                 }
                 sb.Append(tmpCharBuffer, tmpCharPos, i);
             } while (await ReadBufferAsync().ConfigureAwait(false) > 0);
 
-            return sb.ToString();
+            return StringBuilderCache.GetStringAndRelease(sb);
         }
 
         public override Task<string> ReadToEndAsync()
@@ -909,7 +909,7 @@ namespace System.IO
         private async Task<string> ReadToEndAsyncInternal()
         {
             // Call ReadBuffer, then pull data out of charBuffer.
-            StringBuilder sb = new StringBuilder(CharLen_Prop - CharPos_Prop);
+            StringBuilder sb = StringBuilderCache.Acquire(CharLen_Prop - CharPos_Prop);
             do
             {
                 int tmpCharPos = CharPos_Prop;
@@ -918,7 +918,7 @@ namespace System.IO
                 await ReadBufferAsync().ConfigureAwait(false);
             } while (CharLen_Prop > 0);
 
-            return sb.ToString();
+            return StringBuilderCache.GetStringAndRelease(sb);
         }
 
         public override Task<int> ReadAsync(char[] buffer, int index, int count)
