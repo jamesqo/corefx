@@ -223,13 +223,17 @@ namespace System.Collections.Generic
         /// <returns>true if item contained; false if not</returns>
         public bool Contains(T item)
         {
+            // Save field accesses
+            Slot[] slots = _slots;
+            IEqualityComparer<T> comparer = _comparer;
+            
             if (_buckets != null)
             {
                 int hashCode = InternalGetHashCode(item);
                 // see note at "HashSet" level describing why "- 1" appears in for loop
-                for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = _slots[i].next)
+                for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = slots[i].next)
                 {
-                    if (_slots[i].hashCode == hashCode && _comparer.Equals(_slots[i].value, item))
+                    if (slots[i].hashCode == hashCode && comparer.Equals(slots[i].value, item))
                     {
                         return true;
                     }
@@ -256,28 +260,32 @@ namespace System.Collections.Generic
         /// <returns>true if removed; false if not (i.e. if the item wasn't in the HashSet)</returns>
         public bool Remove(T item)
         {
+            // Save field accesses
+            Slot[] slots = _slots;
+            IEqualityComparer<T> comparer = _comparer;
+            
             if (_buckets != null)
             {
                 int hashCode = InternalGetHashCode(item);
                 int bucket = hashCode % _buckets.Length;
                 int last = -1;
-                for (int i = _buckets[bucket] - 1; i >= 0; last = i, i = _slots[i].next)
+                for (int i = _buckets[bucket] - 1; i >= 0; last = i, i = slots[i].next)
                 {
-                    if (_slots[i].hashCode == hashCode && _comparer.Equals(_slots[i].value, item))
+                    if (slots[i].hashCode == hashCode && comparer.Equals(slots[i].value, item))
                     {
                         if (last < 0)
                         {
                             // first iteration; update buckets
-                            _buckets[bucket] = _slots[i].next + 1;
+                            _buckets[bucket] = slots[i].next + 1;
                         }
                         else
                         {
                             // subsequent iterations; update 'next' pointers
-                            _slots[last].next = _slots[i].next;
+                            slots[last].next = slots[i].next;
                         }
-                        _slots[i].hashCode = -1;
-                        _slots[i].value = default(T);
-                        _slots[i].next = _freeList;
+                        slots[i].hashCode = -1;
+                        slots[i].value = default(T);
+                        slots[i].next = _freeList;
 
                         _count--;
                         _version++;
@@ -294,7 +302,7 @@ namespace System.Collections.Generic
                     }
                 }
             }
-            // either _buckets is null or wasn't found
+            // either _buckets is null or the item wasn't found
             return false;
         }
 
@@ -850,14 +858,16 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentException(SR.Arg_ArrayPlusOffTooSmall);
             }
+            
+            // Save field accesses
+            Slot[] slots = _slots;
 
-            int numCopied = 0;
-            for (int i = 0; i < _lastIndex && numCopied < count; i++)
+            count = Math.Min(_lastIndex, count);
+            for (int i = 0; i < count; i++)
             {
-                if (_slots[i].hashCode >= 0)
+                if (slots[i].hashCode >= 0)
                 {
-                    array[arrayIndex + numCopied] = _slots[i].value;
-                    numCopied++;
+                    array[arrayIndex + i] = slots[i].value;
                 }
             }
         }
@@ -874,14 +884,17 @@ namespace System.Collections.Generic
                 throw new ArgumentNullException(nameof(match));
             }
             Contract.EndContractBlock();
+            
+            // Save field accesses
+            Slot[] slots = _slots;
 
             int numRemoved = 0;
             for (int i = 0; i < _lastIndex; i++)
             {
-                if (_slots[i].hashCode >= 0)
+                if (slots[i].hashCode >= 0)
                 {
                     // cache value in case delegate removes it
-                    T value = _slots[i].value;
+                    T value = slots[i].value;
                     if (match(value))
                     {
                         // check again that remove actually removed it
@@ -932,21 +945,25 @@ namespace System.Collections.Generic
             else
             {
                 Debug.Assert(_buckets != null, "_buckets was null but _count > 0");
-
+                
                 // similar to IncreaseCapacity but moves down elements in case add/remove/etc
                 // caused fragmentation
                 int newSize = HashHelpers.GetPrime(_count);
                 Slot[] newSlots = new Slot[newSize];
                 int[] newBuckets = new int[newSize];
+                
+                // Save field accesses
+                int lastIndex = _lastIndex;
+                Slot[] slots = _slots;
 
                 // move down slots and rehash at the same time. newIndex keeps track of current 
                 // position in newSlots array
                 int newIndex = 0;
-                for (int i = 0; i < _lastIndex; i++)
+                for (int i = 0; i < lastIndex; i++)
                 {
-                    if (_slots[i].hashCode >= 0)
+                    if (slots[i].hashCode >= 0)
                     {
-                        newSlots[newIndex] = _slots[i];
+                        newSlots[newIndex] = slots[i];
 
                         // rehash
                         int bucket = newSlots[newIndex].hashCode % newSize;
@@ -1014,17 +1031,20 @@ namespace System.Collections.Generic
         private void SetCapacity(int newSize, bool forceNewHashCodes)
         {
             Debug.Assert(_buckets != null, "SetCapacity called on a set with no elements");
-
+            
+            // Save field accesses
+            int lastIndex = _lastIndex;
+            
             Slot[] newSlots = new Slot[newSize];
             if (_slots != null)
             {
-                Array.Copy(_slots, 0, newSlots, 0, _lastIndex);
+                Array.Copy(_slots, 0, newSlots, 0, lastIndex);
             }
-
+            
 #if FEATURE_RANDOMIZED_STRING_HASHING
             if (forceNewHashCodes)
             {
-                for (int i = 0; i < _lastIndex; i++)
+                for (int i = 0; i < lastIndex; i++)
                 {
                     if (newSlots[i].hashCode != -1)
                     {
@@ -1036,9 +1056,8 @@ namespace System.Collections.Generic
             Debug.Assert(!forceNewHashCodes);
 #endif
 
-
             int[] newBuckets = new int[newSize];
-            for (int i = 0; i < _lastIndex; i++)
+            for (int i = 0; i < lastIndex; i++)
             {
                 int bucket = newSlots[i].hashCode % newSize;
                 newSlots[i].next = newBuckets[bucket] - 1;
@@ -1061,14 +1080,18 @@ namespace System.Collections.Generic
                 Initialize(0);
             }
 
+            // Save field accesses
+            Slot[] slots = _slots;
+            IEqualityComparer<T> comparer = _comparer;
+            
             int hashCode = InternalGetHashCode(value);
             int bucket = hashCode % _buckets.Length;
 #if FEATURE_RANDOMIZED_STRING_HASHING
             int collisionCount = 0;
 #endif
-            for (int i = _buckets[bucket] - 1; i >= 0; i = _slots[i].next)
+            for (int i = _buckets[bucket] - 1; i >= 0; i = slots[i].next)
             {
-                if (_slots[i].hashCode == hashCode && _comparer.Equals(_slots[i].value, value))
+                if (slots[i].hashCode == hashCode && comparer.Equals(slots[i].value, value))
                 {
                     return false;
                 }
@@ -1081,13 +1104,13 @@ namespace System.Collections.Generic
             if (_freeList >= 0)
             {
                 index = _freeList;
-                _freeList = _slots[index].next;
+                _freeList = slots[index].next;
             }
             else
             {
-                if (_lastIndex == _slots.Length)
+                if (_lastIndex == slots.Length)
                 {
-                    IncreaseCapacity();
+                    IncreaseCapacity(); // Modifies the fields _buckets and _slots, so...
                     // this will change during resize
                     bucket = hashCode % _buckets.Length;
                 }
@@ -1102,9 +1125,9 @@ namespace System.Collections.Generic
             _version++;
 
 #if FEATURE_RANDOMIZED_STRING_HASHING
-            if (collisionCount > HashHelpers.HashCollisionThreshold && HashHelpers.IsWellKnownEqualityComparer(_comparer))
+            if (collisionCount > HashHelpers.HashCollisionThreshold && HashHelpers.IsWellKnownEqualityComparer(comparer))
             {
-                _comparer = (IEqualityComparer<T>)HashHelpers.GetRandomizedEqualityComparer(_comparer);
+                _comparer = comparer = (IEqualityComparer<T>)HashHelpers.GetRandomizedEqualityComparer(comparer);
                 SetCapacity(_buckets.Length, true);
             }
 #endif // FEATURE_RANDOMIZED_STRING_HASHING
@@ -1184,11 +1207,14 @@ namespace System.Collections.Generic
         /// <param name="other"></param>
         private void IntersectWithHashSetWithSameEC(HashSet<T> other)
         {
+            // Save field accesses
+            Slot[] slots = _slots;
+            
             for (int i = 0; i < _lastIndex; i++)
             {
-                if (_slots[i].hashCode >= 0)
+                if (slots[i].hashCode >= 0)
                 {
-                    T item = _slots[i].value;
+                    T item = slots[i].value;
                     if (!other.Contains(item))
                     {
                         Remove(item);
@@ -1234,14 +1260,17 @@ namespace System.Collections.Generic
                     bitHelper.MarkBit(index);
                 }
             }
+            
+            // Save field accesses
+            Slot[] slots = _slots;
 
             // if anything unmarked, remove it. Perf can be optimized here if BitHelper had a 
             // FindFirstUnmarked method.
             for (int i = 0; i < originalLastIndex; i++)
             {
-                if (_slots[i].hashCode >= 0 && !bitHelper.IsMarked(i))
+                if (slots[i].hashCode >= 0 && !bitHelper.IsMarked(i))
                 {
-                    Remove(_slots[i].value);
+                    Remove(slots[i].value);
                 }
             }
         }
@@ -1255,11 +1284,15 @@ namespace System.Collections.Generic
         private int InternalIndexOf(T item)
         {
             Debug.Assert(_buckets != null, "_buckets was null; callers should check first");
+            
+            // Save field accesses
+            Slot[] slots = _slots;
+            IEqualityComparer<T> comparer = _comparer;
 
             int hashCode = InternalGetHashCode(item);
-            for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = _slots[i].next)
+            for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = slots[i].next)
             {
-                if ((_slots[i].hashCode) == hashCode && _comparer.Equals(_slots[i].value, item))
+                if ((slots[i].hashCode) == hashCode && comparer.Equals(slots[i].value, item))
                 {
                     return i;
                 }
@@ -1353,13 +1386,16 @@ namespace System.Collections.Generic
                     }
                 }
             }
+            
+            // Save field accesses
+            Slot[] slots = _slots;
 
             // if anything marked, remove it
             for (int i = 0; i < originalLastIndex; i++)
             {
                 if (itemsToRemove.IsMarked(i))
                 {
-                    Remove(_slots[i].value);
+                    Remove(slots[i].value);
                 }
             }
         }
@@ -1377,28 +1413,32 @@ namespace System.Collections.Generic
         private bool AddOrGetLocation(T value, out int location)
         {
             Debug.Assert(_buckets != null, "_buckets is null, callers should have checked");
+            
+            // Save field accesses
+            Slot[] slots = _slots;
+            IEqualityComparer<T> comparer = _comparer;
 
             int hashCode = InternalGetHashCode(value);
             int bucket = hashCode % _buckets.Length;
-            for (int i = _buckets[bucket] - 1; i >= 0; i = _slots[i].next)
+            for (int i = _buckets[bucket] - 1; i >= 0; i = slots[i].next)
             {
-                if (_slots[i].hashCode == hashCode && _comparer.Equals(_slots[i].value, value))
+                if (slots[i].hashCode == hashCode && comparer.Equals(slots[i].value, value))
                 {
                     location = i;
-                    return false; //already present
+                    return false; // already present
                 }
             }
             int index;
             if (_freeList >= 0)
             {
                 index = _freeList;
-                _freeList = _slots[index].next;
+                _freeList = slots[index].next;
             }
             else
             {
-                if (_lastIndex == _slots.Length)
+                if (_lastIndex == slots.Length)
                 {
-                    IncreaseCapacity();
+                    IncreaseCapacity(); // Modifies the fields _buckets and _slots, so...
                     // this will change during resize
                     bucket = hashCode % _buckets.Length;
                 }
@@ -1576,18 +1616,22 @@ namespace System.Collections.Generic
                 {
                     throw new InvalidOperationException(SR.InvalidOperation_EnumFailedVersion);
                 }
-
-                while (_index < _set._lastIndex)
+                
+                // Save field accesses
+                int lastIndex = _set._lastIndex;
+                Slot[] slots = _set._slots;
+                
+                while (_index < lastIndex)
                 {
-                    if (_set._slots[_index].hashCode >= 0)
+                    if (slots[_index].hashCode >= 0)
                     {
-                        _current = _set._slots[_index].value;
+                        _current = slots[_index].value;
                         _index++;
                         return true;
                     }
                     _index++;
                 }
-                _index = _set._lastIndex + 1;
+                _index = lastIndex + 1;
                 _current = default(T);
                 return false;
             }
