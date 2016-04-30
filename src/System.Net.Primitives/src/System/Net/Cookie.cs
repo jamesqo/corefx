@@ -927,6 +927,14 @@ namespace System.Net
         private string _value;
         private int _cookieStartIndex;
         private int _cookieLength;
+        
+#if DEBUG
+        static CookieTokenizer()
+        {
+            Debug.Assert(s_recognizedAttributes.Count == RecognizedAttributesCount);
+            Debug.Assert(s_recognizedServerAttributes.Count == RecognizedServerAttributesCount);
+        }
+#endif
 
         internal CookieTokenizer(string tokenStream)
         {
@@ -1310,77 +1318,47 @@ namespace System.Net
             _value = string.Empty;
         }
 
-        private struct RecognizedAttribute
-        {
-            private string _name;
-            private CookieToken _token;
-
-            internal RecognizedAttribute(string name, CookieToken token)
-            {
-                _name = name;
-                _token = token;
-            }
-
-            internal CookieToken Token
-            {
-                get
-                {
-                    return _token;
-                }
-            }
-
-            internal bool IsEqualTo(string value)
-            {
-                return string.Equals(_name, value, StringComparison.OrdinalIgnoreCase);
-            }
-        }
-
+        private const int RecognizedAttributesCount = 11;
+        private const int RecognizedServerAttributesCount = 5;
+        
         // Recognized attributes in order of expected frequency.
-        private readonly static RecognizedAttribute[] s_recognizedAttributes = {
-            new RecognizedAttribute(Cookie.PathAttributeName, CookieToken.Path),
-            new RecognizedAttribute(Cookie.MaxAgeAttributeName, CookieToken.MaxAge),
-            new RecognizedAttribute(Cookie.ExpiresAttributeName, CookieToken.Expires),
-            new RecognizedAttribute(Cookie.VersionAttributeName, CookieToken.Version),
-            new RecognizedAttribute(Cookie.DomainAttributeName, CookieToken.Domain),
-            new RecognizedAttribute(Cookie.SecureAttributeName, CookieToken.Secure),
-            new RecognizedAttribute(Cookie.DiscardAttributeName, CookieToken.Discard),
-            new RecognizedAttribute(Cookie.PortAttributeName, CookieToken.Port),
-            new RecognizedAttribute(Cookie.CommentAttributeName, CookieToken.Comment),
-            new RecognizedAttribute(Cookie.CommentUrlAttributeName, CookieToken.CommentUrl),
-            new RecognizedAttribute(Cookie.HttpOnlyAttributeName, CookieToken.HttpOnly),
+        private readonly static Dictionary<string, CookieToken> s_recognizedAttributes =
+            new Dictionary<string, CookieToken>(RecognizedAttributesCount, StringComparer.OrdinalIgnoreCase)
+        {
+            [Cookie.PathAttributeName] = CookieToken.Path,
+            [Cookie.MaxAgeAttributeName] = CookieToken.MaxAge,
+            [Cookie.ExpiresAttributeName] = CookieToken.Expires,
+            [Cookie.VersionAttributeName] = CookieToken.Version,
+            [Cookie.DomainAttributeName] = CookieToken.Domain,
+            [Cookie.SecureAttributeName] = CookieToken.Secure,
+            [Cookie.DiscardAttributeName] = CookieToken.Discard,
+            [Cookie.PortAttributeName] = CookieToken.Port,
+            [Cookie.CommentAttributeName] = CookieToken.Comment,
+            [Cookie.CommentUrlAttributeName] = CookieToken.CommentUrl,
+            [Cookie.HttpOnlyAttributeName] = CookieToken.HttpOnly,
         };
 
-        private readonly static RecognizedAttribute[] s_recognizedServerAttributes = {
-            new RecognizedAttribute('$' + Cookie.PathAttributeName, CookieToken.Path),
-            new RecognizedAttribute('$' + Cookie.VersionAttributeName, CookieToken.Version),
-            new RecognizedAttribute('$' + Cookie.DomainAttributeName, CookieToken.Domain),
-            new RecognizedAttribute('$' + Cookie.PortAttributeName, CookieToken.Port),
-            new RecognizedAttribute('$' + Cookie.HttpOnlyAttributeName, CookieToken.HttpOnly),
+        private readonly static Dictionary<string, CookieToken> s_recognizedServerAttributes =
+            new Dictionary<string, CookieToken>(RecognizedServerAttributesCount, StringComparer.OrdinalIgnoreCase)
+        {
+            ['$' + Cookie.PathAttributeName] = CookieToken.Path,
+            ['$' + Cookie.VersionAttributeName] = CookieToken.Version,
+            ['$' + Cookie.DomainAttributeName] = CookieToken.Domain,
+            ['$' + Cookie.PortAttributeName] = CookieToken.Port,
+            ['$' + Cookie.HttpOnlyAttributeName] = CookieToken.HttpOnly,
         };
 
         internal CookieToken TokenFromName(bool parseResponseCookies)
         {
-            if (!parseResponseCookies)
-            {
-                for (int i = 0; i < s_recognizedServerAttributes.Length; ++i)
-                {
-                    if (s_recognizedServerAttributes[i].IsEqualTo(Name))
-                    {
-                        return s_recognizedServerAttributes[i].Token;
-                    }
-                }
-            }
-            else
-            {
-                for (int i = 0; i < s_recognizedAttributes.Length; ++i)
-                {
-                    if (s_recognizedAttributes[i].IsEqualTo(Name))
-                    {
-                        return s_recognizedAttributes[i].Token;
-                    }
-                }
-            }
-            return CookieToken.Unknown;
+            Dictionary<string, CookieToken> lookup =
+                parseResponseCookies ?
+                s_recognizedAttributes :
+                s_recognizedServerAttributes;
+            
+            CookieToken result;
+            return lookup.TryGetValue(Name, out result) ?
+                result :
+                CookieToken.Unknown;
         }
     }
 
