@@ -287,8 +287,11 @@ namespace System.Net
         
         private unsafe static void GetEncodedBytes(byte[] originalBytes, int offset, int count, byte[] expandedBytes)
         {
+            Debug.Assert(originalBytes != null);
+            Debug.Assert(expandedBytes != null);
             Debug.Assert(originalBytes.Length > 0);
-            Debug.Assert(expandedBytes.Length > originalBytes.Length);
+            Debug.Assert(offset + count <= originalBytes.Length);
+            Debug.Assert(expandedBytes.Length >= originalBytes.Length);
             
             fixed (byte* pOriginalBytes = originalBytes)
             fixed (byte* pExpandedBytes = expandedBytes)
@@ -303,14 +306,14 @@ namespace System.Net
             Debug.Assert(originalBytes != null);
             Debug.Assert(expandedBytes != null);
             Debug.Assert(originalCount > 0);
-            Debug.Assert(expandedCount > originalCount); // Protect against buffer overflows
+            Debug.Assert(expandedCount >= originalCount); // Protect against buffer overflows
             
             int pos = 0;
             for (int i = 0; i < originalCount; i++)
             {
                 // Make sure we never overwrite any bytes if originalBytes and
                 // expandedBytes refer to the same buffer
-                Debug.Assert(!sameBuffer || i >= pos);
+                Debug.Assert(!sameBuffer || (originalBytes + i >= expandedBytes + pos));
 
                 byte b = originalBytes[i];
                 char ch = (char)b;
