@@ -303,7 +303,7 @@ namespace System.Net
             Debug.Assert(originalBytes != null);
             Debug.Assert(expandedBytes != null);
             Debug.Assert(originalCount > 0);
-            Debug.Assert(expandedCount > count); // Protect against buffer overflows
+            Debug.Assert(expandedCount > originalCount); // Protect against buffer overflows
             
             int pos = 0;
             for (int i = 0; i < originalCount; i++)
