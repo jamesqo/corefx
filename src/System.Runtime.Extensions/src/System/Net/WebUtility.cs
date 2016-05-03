@@ -285,6 +285,19 @@ namespace System.Net
 
         #region UrlEncode implementation
         
+        private unsafe static void GetEncodedBytes(byte[] originalBytes, int offset, int count, byte[] expandedBytes)
+        {
+            Debug.Assert(originalBytes.Length > 0);
+            Debug.Assert(expandedBytes.Length > originalBytes.Length);
+            
+            fixed (byte* pOriginalBytes = originalBytes)
+            fixed (byte* pExpandedBytes = expandedBytes)
+            {
+                bool sameBuffer = originalBytes == expandedBytes;
+                GetEncodedBytes(pOriginalBytes + offset, count, pExpandedBytes, expandedBytes.Length, sameBuffer);
+            }
+        }
+        
         private unsafe static void GetEncodedBytes(byte* originalBytes, int originalCount, byte* expandedBytes, int expandedCount, bool sameBuffer)
         {
             Debug.Assert(originalBytes != null);
@@ -387,10 +400,7 @@ namespace System.Net
             {
                 byte[] newBytes = new byte[newByteCount];
                 Encoding.UTF8.GetBytes(value, 0, value.Length, newBytes, byteIndex);
-                fixed (byte* pNewBytes = newBytes)
-                {
-                    GetEncodedBytes(pNewBytes + byteIndex, byteCount, pNewBytes, newByteCount, sameBuffer: true);
-                }
+                GetEncodedBytes(newBytes, byteIndex, byteCount, newBytes);
                 return Encoding.UTF8.GetString(newBytes);
             }
         }
