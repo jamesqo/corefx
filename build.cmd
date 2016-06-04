@@ -15,6 +15,7 @@ set "helpOptions=-? -h /? /h help /help --help"
 
 set __buildSpec=
 set __buildConfig=
+set __cleanBuild=false
 
 :Loop
 if [%1]==[] goto Tools
@@ -48,6 +49,12 @@ if /I [%1] == [release] (
     goto Next
 )
 
+if /I [%1] == [clean] (
+    set __cleanBuild=true
+    set processedArgs=!processedArgs! %1
+    goto Next
+)
+
 if [!processedArgs!]==[] (
   call set unprocessedBuildArgs=!__args!
 ) else (
@@ -72,6 +79,9 @@ if not defined VisualStudioVersion (
 )
 
 :Build
+:: Do a clean build if the user requests it
+if [%__cleanBuild%] == [true] call "%~dp0clean.cmd"
+
 :: Restore the Tools directory
 call %~dp0init-tools.cmd
 
