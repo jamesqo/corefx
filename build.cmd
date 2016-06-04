@@ -55,6 +55,13 @@ if /I [%1] == [clean] (
     goto Next
 )
 
+:: The CORECLR_SERVER_GC env variable is used by corerun
+if /I [%1] == [useservergc] (
+    set CORECLR_SERVER_GC=1
+    set processedArgs=!processedArgs! %1
+    goto Next
+)
+
 if [!processedArgs!]==[] (
   call set unprocessedBuildArgs=!__args!
 ) else (
