@@ -112,8 +112,8 @@ build_managed()
 
     __prefix=$'Starting managed build...\n' echo_and_run "$__scriptpath/Tools/corerun" "$__scriptpath/Tools/MSBuild.exe" "$__buildproj" /m /nologo \
         /verbosity:minimal "/fileloggerparameters:Verbosity=normal;LogFile=$__buildlog" "/l:BinClashLogger,$__binclashloggerdll;LogFile=$__binclashlog" \
-        /p:ConfigurationGroup=$__BuildType /p:TargetOS=$__BuildOS /p:OSGroup=$__BuildOS /p:SkipTests=$__SkipTests /p:COMPUTERNAME=$(hostname) \
-        /p:USERNAME=$(id -un) /p:TestNugetRuntimeId=$__TestNugetRuntimeId $__UnprocessedBuildArgs
+        /p:ConfigurationGroup=$__BuildType /p:TargetOS=$__BuildOS /p:OSGroup=$__BuildOS /p:BuildTests=$__BuildTests /p:SkipTests=$__SkipTests \
+        /p:COMPUTERNAME=$(hostname) /p:USERNAME=$(id -un) /p:TestNugetRuntimeId=$__TestNugetRuntimeId $__UnprocessedBuildArgs
     BUILDERRORLEVEL=$?
 
     echo
@@ -264,6 +264,7 @@ BUILDERRORLEVEL=0
 __UnprocessedBuildArgs=
 __CleanBuild=false
 __CrossBuild=0
+__BuildTests=true
 __SkipTests=false
 __ServerGC=0
 __VerboseBuild=false
@@ -275,8 +276,8 @@ while :; do
         break
     fi
 
-    lowerI="$(echo $1 | awk '{print tolower($0)}')"
-    case $lowerI in
+    lowerI="$(echo "$1" | awk '{print tolower($0)}')"
+    case "$lowerI" in
         -\?|-h|--help|help)
             usage
             exit 1
@@ -354,7 +355,10 @@ while :; do
         cross)
             __CrossBuild=1
             ;;
-        skiptests)
+        buildtests=false)
+            __BuildTests=false
+            ;;
+        skiptests|skiptests=true)
             __SkipTests=true
             ;;
         cmakeargs)
