@@ -13,6 +13,9 @@ set processedArgs=
 set unprocessedBuildArgs=
 set "helpOptions=-? -h /? /h help /help --help"
 
+set __buildSpec=
+set __buildConfig=
+
 :Loop
 if [%1]==[] goto Tools
 
@@ -29,6 +32,18 @@ if /I [%1]==[native] (
 
 if /I [%1] == [managed] (
     set __buildSpec=managed
+    set processedArgs=!processedArgs! %1
+    goto Next
+)
+
+if /I [%1] == [debug] (
+    set "__buildConfig=/p:ConfigurationGroup=Debug"
+    set processedArgs=!processedArgs! %1
+    goto Next
+)
+
+if /I [%1] == [release] (
+    set "__buildConfig=/p:ConfigurationGroup=Release"
     set processedArgs=!processedArgs! %1
     goto Next
 )
@@ -110,8 +125,8 @@ call :build %__args%
 goto :AfterBuild
 
 :build
-echo Running MSBuild with arguments: "%_buildproj%" /nologo /maxcpucount /v:minimal /clp:Summary /nodeReuse:false /flp:v=normal;LogFile="%_buildlog%";Append /flp2:warningsonly;logfile=%~dp0msbuild.wrn /flp3:errorsonly;logfile=%~dp0msbuild.err "/l:BinClashLogger,%_binclashLoggerDll%;LogFile=%_binclashlog%" !unprocessedBuildArgs! %_buildpostfix%
-%_buildprefix% msbuild "%_buildproj%" /nologo /maxcpucount /v:minimal /clp:Summary /nodeReuse:false /flp:v=normal;LogFile="%_buildlog%";Append /flp2:warningsonly;logfile=%~dp0msbuild.wrn /flp3:errorsonly;logfile=%~dp0msbuild.err "/l:BinClashLogger,%_binclashLoggerDll%;LogFile=%_binclashlog%" !unprocessedBuildArgs! %_buildpostfix%
+echo Running MSBuild with arguments: "%_buildproj%" /nologo /maxcpucount /v:minimal /clp:Summary /nodeReuse:false /flp:v=normal;LogFile="%_buildlog%";Append /flp2:warningsonly;logfile=%~dp0msbuild.wrn /flp3:errorsonly;logfile=%~dp0msbuild.err "/l:BinClashLogger,%_binclashLoggerDll%;LogFile=%_binclashlog%" %__buildConfig% !unprocessedBuildArgs! %_buildpostfix%
+%_buildprefix% msbuild "%_buildproj%" /nologo /maxcpucount /v:minimal /clp:Summary /nodeReuse:false /flp:v=normal;LogFile="%_buildlog%";Append /flp2:warningsonly;logfile=%~dp0msbuild.wrn /flp3:errorsonly;logfile=%~dp0msbuild.err "/l:BinClashLogger,%_binclashLoggerDll%;LogFile=%_binclashlog%" %__buildConfig% !unprocessedBuildArgs! %_buildpostfix%
 set BUILDERRORLEVEL=%ERRORLEVEL%
 goto :eof
 
