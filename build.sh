@@ -270,7 +270,7 @@ while :; do
 
     lowerI="$(echo $1 | awk '{print tolower($0)}')"
     case $lowerI in
-        -?|-h|--help)
+        -\?|-h|--help|help)
             usage
             exit 1
             ;;

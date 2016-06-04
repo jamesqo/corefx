@@ -11,9 +11,15 @@ setlocal EnableDelayedExpansion
 set "__args= %*"
 set processedArgs=
 set unprocessedBuildArgs=
+set "helpOptions=-? -h /? /h help /help --help"
 
 :Loop
 if [%1]==[] goto Tools
+
+:: Check for help options
+for %%o in (%helpOptions%) do (
+    if /I [%1] == [%%o] goto Usage
+)
 
 if /I [%1]==[native] (
     set __buildSpec=native
@@ -115,3 +121,7 @@ findstr /ir /c:".*Warning(s)" /c:".*Error(s)" /c:"Time Elapsed.*" "%_buildlog%"
 echo [%time%] Build Exit Code = %BUILDERRORLEVEL%
 
 exit /b %BUILDERRORLEVEL%
+
+:Usage
+
+:: TODO
