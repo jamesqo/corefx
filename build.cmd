@@ -28,57 +28,45 @@ for %%o in (%helpOptions%) do (
 
 if /I [%1]==[native] (
     set __buildSpec=native
-    set processedArgs=!processedArgs! %1
-    goto Next
+    goto ProcessAndShift
 )
 
 if /I [%1] == [managed] (
     set __buildSpec=managed
-    set processedArgs=!processedArgs! %1
-    goto Next
+    goto ProcessAndShift
 )
 
 if /I [%1] == [debug] (
     set "__buildConfig=/p:ConfigurationGroup=Debug"
-    set processedArgs=!processedArgs! %1
-    goto Next
+    goto ProcessAndShift
 )
 
 if /I [%1] == [release] (
     set "__buildConfig=/p:ConfigurationGroup=Release"
-    set processedArgs=!processedArgs! %1
-    goto Next
+    goto ProcessAndShift
 )
 
 if /I [%1] == [clean] (
     set __cleanBuild=true
-    set processedArgs=!processedArgs! %1
-    goto Next
+    goto ProcessAndShift
 )
 
 if /I [%1] == [skiptests] (
     set SkipTests=true
-    set processedArgs=!processedArgs! %1
-    goto Next
+    goto ProcessAndShift
 )
 
 if /I [%1] == [skiptests=true] (
     set SkipTests=true
-    set processedArgs=!processedArgs! %1
-    goto Next
+    goto ProcessAndShift
 )
 
-if /I [%1] == [skiptests=false] (
-    set SkipTests=false
-    set processedArgs=!processedArgs! %1
-    goto Next
-)
+if /I [%1] == [skiptests=false] goto ProcessAndShift
 
 :: The CORECLR_SERVER_GC env variable is used by corerun
 if /I [%1] == [useservergc] (
     set CORECLR_SERVER_GC=1
-    set processedArgs=!processedArgs! %1
-    goto Next
+    goto ProcessAndShift
 )
 
 if [!processedArgs!]==[] (
@@ -90,6 +78,10 @@ if [!processedArgs!]==[] (
 :Next
 shift /1
 goto Loop
+
+:ProcessAndShift
+set processedArgs=!processedArgs! %1
+goto Next
 
 :Tools
 :: Setup VS
