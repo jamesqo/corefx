@@ -51,6 +51,20 @@ if /I [%1] == [clean] (
     goto ProcessAndShift
 )
 
+if /I [%1] == [buildpackages] goto ProcessAndShift
+if /I [%1] == [buildpackages=true] goto ProcessAndShift
+if /I [%1] == [buildpackages=false] (
+    set BuildPackages=false
+    goto ProcessAndShift
+)
+
+if /I [%1] == [buildtests] goto ProcessAndShift
+if /I [%1] == [buildtests=true] goto ProcessAndShift
+if /I [%1] == [buildtests=false] (
+    set BuildTests=false
+    goto ProcessAndShift
+)
+
 if /I [%1] == [skiptests] (
     set SkipTests=true
     goto ProcessAndShift
