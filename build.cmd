@@ -70,6 +70,7 @@ echo [%time%] Building Native Libraries...
 set __binDir=%~dp0bin
 set __versionLog=%~dp0version.log
 if not exist "%__binDir%\obj\_version.h" (
+    echo Generating the version source file...
     msbuild "%~dp0build.proj" /nologo /t:GenerateVersionHeader /p:GenerateNativeVersionInfo=true > "%__versionLog%"
 )
 IF EXIST "%~dp0src\native\Windows\build-native.cmd" (
@@ -109,6 +110,7 @@ call :build %__args%
 goto :AfterBuild
 
 :build
+echo Running MSBuild with arguments: "%_buildproj%" /nologo /maxcpucount /v:minimal /clp:Summary /nodeReuse:false /flp:v=normal;LogFile="%_buildlog%";Append /flp2:warningsonly;logfile=%~dp0msbuild.wrn /flp3:errorsonly;logfile=%~dp0msbuild.err "/l:BinClashLogger,%_binclashLoggerDll%;LogFile=%_binclashlog%" !unprocessedBuildArgs! %_buildpostfix%
 %_buildprefix% msbuild "%_buildproj%" /nologo /maxcpucount /v:minimal /clp:Summary /nodeReuse:false /flp:v=normal;LogFile="%_buildlog%";Append /flp2:warningsonly;logfile=%~dp0msbuild.wrn /flp3:errorsonly;logfile=%~dp0msbuild.err "/l:BinClashLogger,%_binclashLoggerDll%;LogFile=%_binclashlog%" !unprocessedBuildArgs! %_buildpostfix%
 set BUILDERRORLEVEL=%ERRORLEVEL%
 goto :eof
@@ -125,3 +127,5 @@ exit /b %BUILDERRORLEVEL%
 :Usage
 
 :: TODO
+
+goto :eof
