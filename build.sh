@@ -356,14 +356,14 @@ while :; do
         cross)
             __CrossBuild=1
             ;;
-        buildpackages=false)
-            __BuildPackages=false
+        buildpackages*)
+            test "$lowerI" = "buildpackages=false" && __BuildPackages=false
             ;;
-        buildtests=false)
-            __BuildTests=false
+        buildtests*)
+            test "$lowerI" = "buildtests=false" && __BuildTests=false
             ;;
-        skiptests|skiptests=true)
-            __SkipTests=true
+        skiptests*)
+            (test "$lowerI" = "skiptests" || test "$lowerI" = "skiptests=true") && __SkipTests=true
             ;;
         cmakeargs)
             if [ -n "$2" ]; then
