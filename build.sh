@@ -28,6 +28,12 @@ setup_dirs()
     mkdir -p "$__IntermediatesDir"
 }
 
+echo_and_run()
+{
+    echo "${__prefix}$*${__suffix}"
+    "$@"
+}
+
 # Performs "clean build" type actions (deleting and remaking directories)
 
 clean()
@@ -89,7 +95,8 @@ prepare_native_build()
     __versionSourceFile=$__scriptpath/bin/obj/version.c
     if [ -f "${__versionSourceFile}" ]; then __generateversionsource=false; fi
     if [ $__generateversionsource == true ]; then
-        $__scriptpath/Tools/corerun $__scriptpath/Tools/MSBuild.exe "$__scriptpath/build.proj" /t:GenerateVersionSourceFile /p:GenerateVersionSourceFile=true /v:minimal
+        __prefix='Invoking MSBuild to generate the version source file: ' \
+            echo_and_run "$__scriptpath/Tools/corerun" "$__scriptpath/Tools/MSBuild.exe" "$__scriptpath/build.proj" /t:GenerateVersionSourceFile /p:GenerateVersionSourceFile=true /v:minimal
     else
         __versionSourceLine="static char sccsid[] __attribute__((used)) = \"@(#)No version information produced\";"
         echo $__versionSourceLine > $__versionSourceFile
@@ -103,7 +110,10 @@ build_managed()
     __binclashlog=$__scriptpath/binclash.log
     __binclashloggerdll=$__scriptpath/Tools/Microsoft.DotNet.Build.Tasks.dll
 
-    $__scriptpath/Tools/corerun $__scriptpath/Tools/MSBuild.exe "$__buildproj" /m /nologo /verbosity:minimal "/fileloggerparameters:Verbosity=normal;LogFile=$__buildlog" "/l:BinClashLogger,$__binclashloggerdll;LogFile=$__binclashlog" /p:ConfigurationGroup=$__BuildType /p:TargetOS=$__BuildOS /p:OSGroup=$__BuildOS /p:SkipTests=$__SkipTests /p:COMPUTERNAME=$(hostname) /p:USERNAME=$(id -un) /p:TestNugetRuntimeId=$__TestNugetRuntimeId $__UnprocessedBuildArgs
+    __prefix=$'Starting managed build...\n' echo_and_run "$__scriptpath/Tools/corerun" "$__scriptpath/Tools/MSBuild.exe" "$__buildproj" /m /nologo \
+        /verbosity:minimal "/fileloggerparameters:Verbosity=normal;LogFile=$__buildlog" "/l:BinClashLogger,$__binclashloggerdll;LogFile=$__binclashlog" \
+        /p:ConfigurationGroup=$__BuildType /p:TargetOS=$__BuildOS /p:OSGroup=$__BuildOS /p:SkipTests=$__SkipTests /p:COMPUTERNAME=$(hostname) \
+        /p:USERNAME=$(id -un) /p:TestNugetRuntimeId=$__TestNugetRuntimeId $__UnprocessedBuildArgs
     BUILDERRORLEVEL=$?
 
     echo
