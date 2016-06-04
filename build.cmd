@@ -17,6 +17,7 @@ set __buildSpec=
 set __buildConfig=
 set __cleanBuild=false
 
+:: Process options
 :Loop
 if [%1]==[] goto Tools
 
@@ -51,6 +52,24 @@ if /I [%1] == [release] (
 
 if /I [%1] == [clean] (
     set __cleanBuild=true
+    set processedArgs=!processedArgs! %1
+    goto Next
+)
+
+if /I [%1] == [skiptests] (
+    set SkipTests=true
+    set processedArgs=!processedArgs! %1
+    goto Next
+)
+
+if /I [%1] == [skiptests=true] (
+    set SkipTests=true
+    set processedArgs=!processedArgs! %1
+    goto Next
+)
+
+if /I [%1] == [skiptests=false] (
+    set SkipTests=false
     set processedArgs=!processedArgs! %1
     goto Next
 )
