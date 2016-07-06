@@ -810,8 +810,6 @@ namespace System
             return new string(cleanStr, 0, count);
         }
 
-        const int StackAllocThreshold = 256;
-
         // Use this if you only know the count at runtime, and want to avoid
         // allocating intermediary representations
         // Note that this may still allocate an array, if count >= 5
