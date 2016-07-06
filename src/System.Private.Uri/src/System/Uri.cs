@@ -468,11 +468,12 @@ namespace System
                         // Hence anything like x:sdsd is a relative path and be added to the baseUri Path
                         break;
                     }
-                    string scheme = relativeStr.Substring(0, i);
-                    fixed (char* sptr = scheme)
+                    // scheme is relativeStr.Substring(0, i)
+                    int schemeLength = i;
+                    fixed (char* sptr = relativeStr)
                     {
                         UriParser syntax = null;
-                        if (CheckSchemeSyntax(sptr, (ushort)scheme.Length, ref syntax) == ParsingError.None)
+                        if (CheckSchemeSyntax(sptr, (ushort)schemeLength, ref syntax) == ParsingError.None)
                         {
                             if (baseUri.Syntax == syntax)
                             {
