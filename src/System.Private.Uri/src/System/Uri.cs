@@ -5026,19 +5026,23 @@ namespace System
                 return string.Empty;
             }
 
-            StringBuilder relPath = new StringBuilder();
+            int subdirectoryCount = 0;
             // Walk down several dirs
             for (; i < path1.Length; ++i)
             {
                 if (path1[i] == '/')
                 {
-                    relPath.Append("../");
+                    subdirectoryCount++;
                 }
             }
+
             // Same path except that path1 ended with a file name and path2 didn't
-            if (relPath.Length == 0 && path2.Length - 1 == si)
+            if (subdirectoryCount == 0 && path2.Length - 1 == si)
                 return "./"; // Truncate the file name
-            return relPath.ToString() + path2.Substring(si + 1);
+            
+            // Relative path from path1 to the 'gcd' of path1 and path2
+            var relativePath = UriHelper.RepeatString("../", subdirectoryCount);
+            return relativePath + path2.Substring(si + 1);
         }
 
         //Used by UriBuilder

@@ -809,5 +809,30 @@ namespace System
             }
             return new string(cleanStr, 0, count);
         }
+
+        const int StackAllocThreshold = 256;
+
+        // Use this if you only know the count at runtime, and want to avoid
+        // allocating intermediary representations
+        // Note that this may still allocate an array, if count >= 5
+        internal static unsafe string RepeatString(string value, int count)
+        {
+            Debug.Assert(value != null);
+            Debug.Assert(count >= 0);
+
+            // Avoid allocating a params array as much as we can
+            if (count == 0) return string.Empty;
+            if (count == 1) return value;
+            if (value.Length == 1) return new string(value[0], count);
+            if (count == 2) return string.Concat(value, value);
+            if (count == 3) return string.Concat(value, value, value);
+            if (count == 4) return string.Concat(value, value, value, value);
+
+            // We have to allocate an array and fill it with the same string ref
+            var values = new string[count];
+            for (int i = 0; i < values.Length; i++)
+                values[i] = value;
+            return string.Concat(values);
+        }
     }
 }
