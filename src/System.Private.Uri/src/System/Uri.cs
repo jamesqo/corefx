@@ -870,16 +870,7 @@ namespace System
                     }
 
                     // check for all back slashes
-                    for (int i = 0; i < str.Length; ++i)
-                    {
-                        if (str[i] == '/')
-                        {
-                            str = str.Replace('/', '\\');
-                            break;
-                        }
-                    }
-
-                    return str;
+                    return str.Replace('/', '\\');
                 }
 
                 char[] result;
