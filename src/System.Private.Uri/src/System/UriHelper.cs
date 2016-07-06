@@ -790,24 +790,48 @@ namespace System
                     ch == '\u202E' /*RLO*/);
         }
 
+        // Limit for how big char arrays can get before
+        // we start allocating on the heap
+        const int StackAllocThreshold = 256;
+
         //
         // Strip Bidirectional control characters from this string
         //
-        internal static unsafe string StripBidiControlCharacter(char* strToClean, int start, int length)
+        internal static unsafe string StripBidiControlCharacter(char* strToClean, int length)
         {
             if (length <= 0) return "";
 
-            char[] cleanStr = new char[length];
-            int count = 0;
-            for (int i = 0; i < length; ++i)
+            if (length <= StackAllocThreshold)
             {
-                char c = strToClean[start + i];
+                char* cleaned = stackalloc char[length];
+                return StripBidiControlsCore(strToClean, cleaned, length);
+            }
+            else
+            {
+                // length is too big, allocate on the heap
+                char[] cleaned = new char[length];
+                fixed (char* pch = cleaned) // we know cleaned isn't empty b/c of the length <= 0 check above
+                    return StripBidiControlsCore(strToClean, pch, length);
+            }
+        }
+
+        private static unsafe string StripBidiControlsCore(char* unclean, char* cleanBuffer, int length)
+        {
+            Debug.Assert(unclean != null);
+            Debug.Assert(cleanBuffer != null);
+            Debug.Assert(length > 0);
+
+            int count = 0;
+            for (int i = 0; i < length; i++)
+            {
+                char c = unclean[i];
                 if (c < '\u200E' || c > '\u202E' || !IsBidiControlCharacter(c))
                 {
-                    cleanStr[count++] = c;
+                    cleanBuffer[count++] = c;
                 }
             }
-            return new string(cleanStr, 0, count);
+
+            return new string(cleanBuffer, 0, count);
         }
 
         // Use this if you only know the count at runtime, and want to avoid

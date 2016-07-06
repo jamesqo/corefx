@@ -4092,10 +4092,10 @@ namespace System
             {
                 if (hasUnicode)
                 {
-                    string temp = UriHelper.StripBidiControlCharacter(pString, start, end - start);
+                    string temp = UriHelper.StripBidiControlCharacter(pString + start, end - start);
                     try
                     {
-                        newHost += ((temp != null) ? temp.Normalize(NormalizationForm.FormC) : null);
+                        newHost += temp?.Normalize(NormalizationForm.FormC);
                     }
                     catch (ArgumentException)
                     {
