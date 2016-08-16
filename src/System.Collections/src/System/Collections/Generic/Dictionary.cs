@@ -7,6 +7,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace System.Collections.Generic
 {
@@ -19,8 +20,8 @@ namespace System.Collections.Generic
         {
             public int hashCode;    // Lower 31 bits of hash code, -1 if unused
             public int next;        // Index of next entry, -1 if last
-            public TKey key;           // Key of entry
-            public TValue value;         // Value of entry
+            public TKey key;        // Key of entry
+            public TValue value;    // Value of entry
         }
 
         private int[] buckets;
@@ -30,10 +31,7 @@ namespace System.Collections.Generic
 
         private int freeList;
         private int freeCount;
-        private IEqualityComparer<TKey> comparer;
-        private KeyCollection keys;
-        private ValueCollection values;
-        private object _syncRoot;
+        private object comparerOrCollections;
 
         public Dictionary() : this(0, null) { }
 
@@ -45,7 +43,7 @@ namespace System.Collections.Generic
         {
             if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity), capacity, SR.ArgumentOutOfRange_NeedNonNegNum);
             if (capacity > 0) Initialize(capacity);
-            this.comparer = comparer ?? EqualityComparer<TKey>.Default;
+            this.comparerOrCollections = comparer ?? EqualityComparer<TKey>.Default;
         }
 
         public Dictionary(IDictionary<TKey, TValue> dictionary) : this(dictionary, null) { }
@@ -87,7 +85,8 @@ namespace System.Collections.Generic
         {
             get
             {
-                return comparer;
+                var comparer = comparerOrCollections as IEqualityComparer<TKey>;
+                return comparer ?? KeysAndValues.Comparer;
             }
         }
 
@@ -106,23 +105,9 @@ namespace System.Collections.Generic
             }
         }
 
-        ICollection<TKey> IDictionary<TKey, TValue>.Keys
-        {
-            get
-            {
-                if (keys == null) keys = new KeyCollection(this);
-                return keys;
-            }
-        }
+        ICollection<TKey> IDictionary<TKey, TValue>.Keys => Keys;
 
-        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys
-        {
-            get
-            {
-                if (keys == null) keys = new KeyCollection(this);
-                return keys;
-            }
-        }
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
 
         public ValueCollection Values
         {
@@ -134,22 +119,71 @@ namespace System.Collections.Generic
             }
         }
 
-        ICollection<TValue> IDictionary<TKey, TValue>.Values
+        ICollection<TValue> IDictionary<TKey, TValue>.Values => Values;
+
+        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+        
+        private KeysAndValuesWithComparer KeysAndValues
         {
             get
             {
-                if (values == null) values = new ValueCollection(this);
-                return values;
+                var collections = comparerOrCollections as KeysAndValuesWithComparer;
+                if (collections != null)
+                {
+                    return collections;
+                }
+                
+                var comparer = (IEqualityComparer<TKey>)comparerOrCollections;
+                return InitializeKeysAndValues(comparer);
             }
         }
-
-        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values
+        
+        // NOTE: It's important that this method only ever returns one KeysAndValuesWithComparer
+        // instance. This method can be called for SyncRoot.
+        private KeysAndValuesWithComparer InitializeKeysAndValues(IEqualityComparer<TKey> comparer)
         {
-            get
+            Debug.Assert(comparer != null);
+            
+            // Another thread may have run a successful CompareExchange
+            // before we reach this assert
+            // Debug.Assert(comparer == this.comparerOrCollections);
+            
+            var collections = new KeysAndValuesWithComparer(this, comparer);
+            
+            // Explanation: https://blogs.msdn.microsoft.com/oldnewthing/20040915-00/?p=37863
+            // This has been modified to not use a do-while loop since there should be
+            // at most one write to the field after the constructor, so if the first
+            // CompareExchange fails then initialValue will always stay the same afterwards.
+            
+            object initialValue = comparerOrCollections;
+            Debug.Assert(initialValue == comparer || initialValue is KeysAndValuesWithComparer);
+            
+            // If this is true, this means that in the time since comparer
+            // was read from the field, it has been initialized to a
+            // KeysAndValuesWithComparer
+            bool alreadyExchanged = initialValue != comparer;
+            
+            if (!alreadyExchanged)
             {
-                if (values == null) values = new ValueCollection(this);
-                return values;
+                // If the value of the field didn't change while we were doing the comparison,
+                // write collections to it
+                object updatedValue = Interlocked.CompareExchange(ref comparerOrCollections, collections, initialValue);
+                alreadyExchanged = updatedValue != initialValue;
+                initialValue = updatedValue;
             }
+            
+            if (alreadyExchanged)
+            {
+                // Another thread beat us to the initialization
+                
+                // After being set in the constructor there should be at most
+                // ONE write to this field, when it is transformed from
+                // IEqualityComparer<TKey> -> KeysAndValuesWithComparer
+                Debug.Assert(comparerOrCollections is KeysAndValuesWithComparer);
+                collections = (KeysAndValuesWithComparer)initialValue;
+            }
+            
+            return collections;
         }
 
         public TValue this[TKey key]
@@ -162,13 +196,13 @@ namespace System.Collections.Generic
             }
             set
             {
-                Insert(key, value, false);
+                Insert(key, value, add: false);
             }
         }
 
         public void Add(TKey key, TValue value)
         {
-            Insert(key, value, true);
+            Insert(key, value, add: true);
         }
 
         void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> keyValuePair)
@@ -282,6 +316,8 @@ namespace System.Collections.Generic
 
             if (buckets != null)
             {
+                IEqualityComparer<TKey> comparer = Comparer;
+                
                 int hashCode = comparer.GetHashCode(key) & 0x7FFFFFFF;
                 for (int i = buckets[hashCode % buckets.Length]; i >= 0; i = entries[i].next)
                 {
@@ -308,6 +344,7 @@ namespace System.Collections.Generic
             }
 
             if (buckets == null) Initialize(0);
+            IEqualityComparer<TKey> comparer = Comparer;
             int hashCode = comparer.GetHashCode(key) & 0x7FFFFFFF;
             int targetBucket = hashCode % buckets.Length;
 
@@ -561,17 +598,9 @@ namespace System.Collections.Generic
             get { return false; }
         }
 
-        object ICollection.SyncRoot
-        {
-            get
-            {
-                if (_syncRoot == null)
-                {
-                    System.Threading.Interlocked.CompareExchange<object>(ref _syncRoot, new object(), null);
-                }
-                return _syncRoot;
-            }
-        }
+        // Since KeysAndValues should not be visible to the outside world,
+        // it is used as the SyncRoot and saves an extra field
+        object ICollection.SyncRoot => KeysAndValues;
 
         bool IDictionary.IsFixedSize
         {
@@ -820,6 +849,30 @@ namespace System.Collections.Generic
                     return current.Value;
                 }
             }
+        }
+        
+        private sealed class KeysAndValuesWithComparer
+        {
+            private readonly Dictionary<TKey, TValue> dictionary;
+            private KeyCollection keys;
+            private ValueCollection values;
+            
+            public KeysAndValuesWithComparer(Dictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer)
+            {
+                Debug.Assert(dictionary != null);
+                Debug.Assert(comparer != null);
+                
+                dictionary = dictionary;
+                Comparer = comparer;
+            }
+            
+            public IEqualityComparer<TKey> Comparer { get; }
+            
+            public KeyCollection Keys =>
+                keys ?? (keys = new KeyCollection(dictionary));
+            
+            public ValueCollection Values =>
+                values ?? (values = new ValueCollection(dictionary));
         }
 
         [DebuggerTypeProxy(typeof(DictionaryKeyCollectionDebugView<,>))]
