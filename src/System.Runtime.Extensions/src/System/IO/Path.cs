@@ -214,13 +214,24 @@ namespace System.IO
             return CombineNoChecks(path1, path2, path3);
         }
 
-        public static string Combine(params string[] paths)
+        public unsafe static string Combine(params string[] paths)
         {
             if (paths == null)
             {
                 throw new ArgumentNullException(nameof(paths));
             }
             Contract.EndContractBlock();
+            
+            if (paths.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            // TODO: finalSize currently calculates the maximum number of chars needed
+            // for the result string. It is easy (and quite common) to overestimate this
+            // amount, for example with ["abc" "foo"] or ["bcd" ""] we will think that
+            // we need to make room for extra directory separators when we don't.
+            // This should be fixed, and the asserts in CombineHelper() adjusted accordingly.
 
             int finalSize = 0;
             int firstComponent = 0;
@@ -230,59 +241,53 @@ namespace System.IO
 
             for (int i = 0; i < paths.Length; i++)
             {
-                if (paths[i] == null)
+                string path = paths[i];
+                if (path == null)
                 {
                     throw new ArgumentNullException(nameof(paths));
                 }
 
-                if (paths[i].Length == 0)
+                if (path.Length == 0)
                 {
                     continue;
                 }
 
-                PathInternal.CheckInvalidPathChars(paths[i]);
+                PathInternal.CheckInvalidPathChars(path);
 
-                if (IsPathRooted(paths[i]))
+                if (IsPathRooted(path))
                 {
+                    // Ignore all of the previous paths we saw if this path is absolute
                     firstComponent = i;
-                    finalSize = paths[i].Length;
+                    finalSize = path.Length;
                 }
                 else
                 {
-                    finalSize += paths[i].Length;
+                    finalSize += path.Length;
                 }
 
-                char ch = paths[i][paths[i].Length - 1];
+                char ch = path[path.Length - 1];
                 if (!PathInternal.IsDirectoryOrVolumeSeparator(ch))
                     finalSize++;
             }
 
-            StringBuilder finalPath = StringBuilderCache.Acquire(finalSize);
-
-            for (int i = firstComponent; i < paths.Length; i++)
+            if (firstComponent == paths.Length - 1)
             {
-                if (paths[i].Length == 0)
-                {
-                    continue;
-                }
+                // In the case where there is only 1 path in the array,
+                // or an absolute path is the last element of the array
+                // (meaning that everything that came before doesn't matter),
+                // just return that last path and avoid allocating a new string.
 
-                if (finalPath.Length == 0)
-                {
-                    finalPath.Append(paths[i]);
-                }
-                else
-                {
-                    char ch = finalPath[finalPath.Length - 1];
-                    if (!PathInternal.IsDirectoryOrVolumeSeparator(ch))
-                    {
-                        finalPath.Append(DirectorySeparatorChar);
-                    }
-
-                    finalPath.Append(paths[i]);
-                }
+                string result = paths[firstComponent];
+                Debug.Assert(result != null);
+                Debug.Assert(finalSize == result.Length || finalSize == result.Length + 1);
+                return result;
             }
 
-            return StringBuilderCache.GetStringAndRelease(finalPath);
+            return PathInternal.BorrowCharBuffer(
+                length: finalSize,
+                callback: (buffer, length, state) => CombineHelper(state.Item1, state.Item2, buffer, length),
+                state: ValueTuple.Create(paths, firstComponent)
+            );
         }
 
         private static string CombineNoChecks(string path1, string path2)
@@ -302,7 +307,7 @@ namespace System.IO
                 path1 + DirectorySeparatorCharAsString + path2;
         }
 
-        private static string CombineNoChecks(string path1, string path2, string path3)
+        private unsafe static string CombineNoChecks(string path1, string path2, string path3)
         {
             if (path1.Length == 0)
                 return CombineNoChecks(path2, path3);
@@ -334,15 +339,80 @@ namespace System.IO
             else
             {
                 // string.Concat only has string-based overloads up to four arguments; after that requires allocating
-                // a params string[].  Instead, try to use a cached StringBuilder.
-                StringBuilder sb = StringBuilderCache.Acquire(path1.Length + path2.Length + path3.Length + 2);
-                sb.Append(path1)
-                  .Append(DirectorySeparatorChar)
-                  .Append(path2)
-                  .Append(DirectorySeparatorChar)
-                  .Append(path3);
-                return StringBuilderCache.GetStringAndRelease(sb);
+                // a params string[].  Instead, try to use a stack allocated buffer.
+                int finalLength = path1.Length + path2.Length + path3.Length + 2;
+
+                return PathInternal.BorrowCharBuffer(
+                    length: finalLength,
+                    callback: (buffer, length, state) => CombineNoChecksHelper(state.Item1, state.Item2, state.Item3, buffer, length),
+                    state: ValueTuple.Create(path1, path2, path3)
+                );
             }
+        }
+
+        private unsafe static string CombineNoChecksHelper(string path1, string path2, string path3, char* finalPath, int finalLength)
+        {
+            Debug.Assert(finalPath != null || finalLength == 0); // stackalloc'ing 0 items will return a null pointer.
+                                                                 // In the case that it is null the buffer's length will be 0, and
+                                                                 // we should not actually write to the buffer.
+            Debug.Assert(finalLength >= 2);
+            Debug.Assert(path1 != null && path2 != null && path3 != null);
+            Debug.Assert(finalLength == path1.Length + path2.Length + path3.Length + 2);
+            
+            path1.CopyTo(finalPath);
+            finalPath[path1.Length] = DirectorySeparatorChar;
+            path2.CopyTo(finalPath + path1.Length + 1);
+            finalPath[path1.Length + path2.Length + 1] = DirectorySeparatorChar;
+            path3.CopyTo(finalPath + path1.Length + path2.Length + 2);
+
+            // PERF: Explicitly pass in the length to the string constructor.
+            // If we just give it a char* it will make a pass over the buffer
+            // to look for a terminating null.
+            // Besides, it is valid to have embedded nulls in .NET strings since
+            // they are length-prefixed.
+            return new string(finalPath, 0, finalLength);
+        }
+
+        private unsafe static string CombineHelper(string[] paths, int firstComponent, char* finalPath, int finalLength)
+        {
+            Debug.Assert(finalPath != null || finalLength == 0); // stackalloc'ing 0 items will return a null pointer.
+                                                                 // In the case that it is null the buffer's length will be 0, and
+                                                                 // we should not actually write to the buffer.
+            Debug.Assert(finalLength >= 0);
+            Debug.Assert(paths != null);
+            Debug.Assert(firstComponent >= 0 && firstComponent < paths.Length);
+
+            int copiedCount = 0; // number of chars we've copied to finalPath so far
+
+            for (int i = firstComponent; i < paths.Length; i++)
+            {
+                string path = paths[i];
+                Debug.Assert(path != null); // We checked this during an earlier pass over the array
+                if (path.Length == 0)
+                {
+                    continue;
+                }
+
+                Debug.Assert(copiedCount < finalLength);
+                
+                if (copiedCount != 0)
+                {
+                    char ch = finalPath[copiedCount - 1]; // Take the last char we copied to the buffer
+                    if (!PathInternal.IsDirectoryOrVolumeSeparator(ch))
+                    {
+                        // Add a directory separator if one isn't present.
+                        finalPath[copiedCount] = DirectorySeparatorChar;
+                        copiedCount += 1;
+                    }
+                }
+
+                // Copy this path to the buffer.
+                path.CopyTo(finalPath + copiedCount);
+                copiedCount += path.Length;
+            }
+
+            Debug.Assert(copiedCount <= finalLength); // Make sure we didn't copy more than we were allocated
+            return new string(finalPath, 0, copiedCount); // Remember to pass in the length as well as the pointer, or else nulls won't be handled correctly.
         }
 
         private static readonly char[] s_base32Char = {

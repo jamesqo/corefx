@@ -60,6 +60,9 @@
     <Compile Include="$(CommonPath)\System\Runtime\InteropServices\StringBuffer.cs">
       <Link>Common\System\Runtime\InteropServices\StringBuffer.cs</Link>
     </Compile>
+    <Compile Include="$(CommonPath)\System\ValueTuple.cs">
+      <Link>Common\System\ValueTuple.cs</Link>
+    </Compile>
   </ItemGroup>
   <!-- WINDOWS: Shared CoreCLR and .NET Native -->
   <ItemGroup Condition=" '$(TargetsWindows)' == 'true' And '$(TargetGroup)' != 'net462'">
