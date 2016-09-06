@@ -32,10 +32,10 @@ namespace System.Linq
                 throw Error.ArgumentNull(nameof(source));
             }
 
-            AppendPrependIterator<TSource> appendable = source as AppendPrependIterator<TSource>;
-            if (appendable != null)
+            AppendPrependIterator<TSource> prependable = source as AppendPrependIterator<TSource>;
+            if (prependable != null)
             {
-                return appendable.Prepend(element);
+                return prependable.Prepend(element);
             }
 
             return new AppendPrepend1Iterator<TSource>(source, element, false);
