@@ -270,18 +270,14 @@ namespace System.Linq
 
             public SingleLinkedNode<TSource> Add(TSource item) => new SingleLinkedNode<TSource>(this, item);
 
-            public IEnumerator<TSource> GetEnumerator()
+            public SingleLinkedNode<TSource> FindTail()
             {
-                TSource[] array = new TSource[Count];
-                int index = Count;
-                for (SingleLinkedNode<TSource> node = this; node != null; node = node.Linked)
+                SingleLinkedNode<TSource> result = this;
+                while (result.Linked != null)
                 {
-                    --index;
-                    array[index] = node.Item;
+                    result = result.Linked;
                 }
-
-                Debug.Assert(index == 0);
-                return ((IEnumerable<TSource>)array).GetEnumerator();
+                return result;
             }
         }
 
@@ -331,11 +327,20 @@ namespace System.Linq
                             return false;
                         }
 
-                        _enumerator = _appended.GetEnumerator();
+                        // _appended represents the item most recently appended, so
+                        // this will backtrack to the first item that was appended.
+                        _node = _appended.FindTail();
                         _state = 4;
                         goto case 4;
                     case 4:
-                        return LoadFromEnumerator();
+                        if (_node != null)
+                        {
+                            _current = _node.Item;
+                            _node = _node.Linked;
+                            return true;
+                        }
+
+                        return false;
                 }
 
                 Dispose();
@@ -404,11 +409,15 @@ namespace System.Linq
                 list.AddRange(_source);
                 if (_appended != null)
                 {
-                    IEnumerator<TSource> e = _appended.GetEnumerator();
-                    while (e.MoveNext())
+                    // _appended represents the most recently appended item, so we
+                    // need to backtrack to the first item that was appended.
+                    SingleLinkedNode<TSource> node = _appended.FindTail();
+                    do
                     {
-                        list.Add(e.Current);
+                        list.Add(node.Item);
+                        node = node.Linked;
                     }
+                    while (node != null);
                 }
 
                 return list;
