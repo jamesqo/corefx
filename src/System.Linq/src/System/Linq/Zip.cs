@@ -91,6 +91,9 @@ namespace System.Linq
                     return false;
                 }
 
+                // _state - 1 represents the zero-based index into the lists.
+                // IMPORTANT: We need to increment _state before _selector is called,
+                // in case that function calls MoveNext on this iterator.
                 int index = _offset + (_state++ - 1);
                 _current = _selector(_first[index], _second[index]);
                 return true;
