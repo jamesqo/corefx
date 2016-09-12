@@ -38,7 +38,13 @@ namespace System.Linq
                         return EmptyPartition<TResult>.Instance;
                     }
 
-                    return new ZipListIterator<TFirst, TSecond, TResult>(firstList, secondList, resultSelector, 0, resultCount);
+                    // If either of the Counts are negative then something is wrong
+                    // with the IList implementation. We'll stick with the old behavior
+                    // of iterating through the list with its enumerator.
+                    if (resultCount > 0)
+                    {
+                        return new ZipListIterator<TFirst, TSecond, TResult>(firstList, secondList, resultSelector, 0, resultCount);
+                    }
                 }
             }
 
