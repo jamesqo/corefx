@@ -25,6 +25,22 @@ namespace System.Linq
             {
                 throw Error.ArgumentNull(nameof(resultSelector));
             }
+            
+            var firstList = first as IList<TFirst>;
+            if (firstList != null)
+            {
+                var secondList = second as IList<TSecond>;
+                if (secondList != null)
+                {
+                    int resultCount = Math.Min(firstList.Count, secondList.Count);
+                    if (resultCount == 0)
+                    {
+                        return EmptyPartition<TResult>.Instance;
+                    }
+
+                    return new ZipListIterator<TFirst, TSecond, TResult>(firstList, secondList, resultSelector, 0, resultCount);
+                }
+            }
 
             return new ZipEnumerableIterator<TFirst, TSecond, TResult>(first, second, resultSelector);
         }
@@ -32,6 +48,137 @@ namespace System.Linq
         private static Func<TFirst, TSecond, TResult> CombineSelectors<TFirst, TSecond, TMiddle, TResult>(Func<TFirst, TSecond, TMiddle> selector1, Func<TMiddle, TResult> selector2)
         {
             return (first, second) => selector2(selector1(first, second));
+        }
+
+        private sealed class ZipListIterator<TFirst, TSecond, TResult> : Iterator<TResult>, IPartition<TResult>
+        {
+            private readonly IList<TFirst> _first;
+            private readonly IList<TSecond> _second;
+            private readonly Func<TFirst, TSecond, TResult> _selector;
+            private readonly int _offset;
+            private readonly int _count;
+
+            internal ZipListIterator(IList<TFirst> first, IList<TSecond> second, Func<TFirst, TSecond, TResult> selector, int offset, int count)
+            {
+                Debug.Assert(first != null);
+                Debug.Assert(second != null);
+                Debug.Assert(selector != null);
+                Debug.Assert(offset >= 0 && offset < count);
+                Debug.Assert(count > 0); // The caller should check beforehand for count == 0 and if so return EmptyPartition<TResult>
+                Debug.Assert(offset + count <= Math.Min(first.Count, second.Count));
+                Debug.Assert(offset + count > 0); // offset + count should never overflow as this class is currently written.
+                                                  // The entry point to ZipListIterator in .Zip() passes in 0 for offset, and
+                                                  // .Skip() and .Take() should never increase the value of offset + count.
+                _first = first;
+                _second = second;
+                _selector = selector;
+                _offset = offset;
+                _count = count;
+            }
+
+            public override Iterator<TResult> Clone()
+            {
+                return new ZipListIterator<TFirst, TSecond, TResult>(_first, _second, _selector, _offset, _count);
+            }
+
+            public int GetCount(bool onlyIfCheap) => _count;
+
+            public override bool MoveNext()
+            {
+                if (_state > _count)
+                {
+                    Dispose();
+                    return false;
+                }
+
+                int index = _offset + (_state++ - 1);
+                _current = _selector(_first[index], _second[index]);
+                return true;
+            }
+
+            public override IEnumerable<TResult2> Select<TResult2>(Func<TResult, TResult2> selector)
+            {
+                return new ZipListIterator<TFirst, TSecond, TResult2>(_first, _second, CombineSelectors(_selector, selector), _offset, _count);
+            }
+
+            public IPartition<TResult> Skip(int count)
+            {
+                if (count >= _count)
+                {
+                    return EmptyPartition<TResult>.Instance;
+                }
+
+                return new ZipListIterator<TFirst, TSecond, TResult>(_first, _second, _selector, _offset + count, _count - count);
+            }
+
+            public IPartition<TResult> Take(int count)
+            {
+                if (count >= _count)
+                {
+                    return this;
+                }
+
+                return new ZipListIterator<TFirst, TSecond, TResult>(_first, _second, _selector, _offset, count);
+            }
+
+            public TResult[] ToArray()
+            {
+                Debug.Assert(_count != 0); // See notes in constructor
+
+                var array = new TResult[_count];
+
+                for (int i = 0; i < array.Length; i++)
+                {
+                    int index = _offset + i;
+                    array[i] = _selector(_first[index], _second[index]);
+                }
+
+                return array;
+            }
+
+            public List<TResult> ToList()
+            {
+                var list = new List<TResult>(_count);
+
+                for (int i = 0; i < _count; i++)
+                {
+                    int index = _offset + i;
+                    list.Add(_selector(_first[index], _second[index]));
+                }
+
+                return list;
+            }
+
+            public TResult TryGetElementAt(int index, out bool found)
+            {
+                if ((uint)index < (uint)_count)
+                {
+                    found = true;
+                    int i = _offset + index;
+                    return _selector(_first[i], _second[i]);
+                }
+
+                found = false;
+                return default(TResult);
+            }
+
+            public TResult TryGetFirst(out bool found)
+            {
+                Debug.Assert(_count != 0); // See notes in constructor
+
+                found = true;
+                int index = _offset;
+                return _selector(_first[index], _second[index]);
+            }
+
+            public TResult TryGetLast(out bool found)
+            {
+                Debug.Assert(_count != 0); // See notes in constructor
+
+                found = true;
+                int index = _offset + _count - 1; // _offset + _count should not overflow, see constructor
+                return _selector(_first[index], _second[index]);
+            }
         }
 
         private sealed class ZipEnumerableIterator<TFirst, TSecond, TResult> : Iterator<TResult>
