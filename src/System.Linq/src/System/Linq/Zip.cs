@@ -31,7 +31,7 @@ namespace System.Linq
 
             if (firstList != null && secondList != null)
             {
-                return ZipTwoLists(firstList, secondList);
+                return ZipTwoLists(firstList, secondList, resultSelector);
             }
             else if (firstList != null)
             {
@@ -78,7 +78,7 @@ namespace System.Linq
             return
                 count < 0 ? ZipTwoEnumerables(first, second, selector) :
                 count == 0 ? EmptyPartition<TResult>.Instance :
-                new ZipListIterator<TFirst, TSecond, TResult>(first, second, resultSelector, count);
+                new ZipListIterator<TFirst, TSecond, TResult>(first, second, selector, count);
         }
 
         private static IEnumerable<TResult> ZipListAndPartition<TFirst, TSecond, TResult>(IList<TFirst> first, IPartition<TSecond> second, Func<TFirst, TSecond, TResult> selector)
@@ -93,7 +93,7 @@ namespace System.Linq
             return
                 count < 0 ? ZipTwoEnumerables(first, second, selector) :
                 count == 0 ? EmptyPartition<TResult>.Instance :
-                new ZipListAndPartitionIterator<TFirst, TSecond, TResult>(first, second, resultSelector, count);
+                new ZipListAndPartitionIterator<TFirst, TSecond, TResult>(first, second, selector, count);
         }
 
         private static IEnumerable<TResult> ZipPartitionAndList<TFirst, TSecond, TResult>(IPartition<TFirst> first, IList<TSecond> second, Func<TFirst, TSecond, TResult> selector)
@@ -270,10 +270,6 @@ namespace System.Linq
             }
         }
 
-        private sealed class ZipListAndPartitionIterator<TFirst, TSecond, TResult> : Iterator<TResult>, IPartition<TResult>
-        {
-        }
-
         private sealed class ZipPartitionIterator<TFirst, TSecond, TResult> : Iterator<TResult>, IPartition<TResult>
         {
             private readonly IPartition<TFirst> _first;
@@ -282,7 +278,7 @@ namespace System.Linq
             private IEnumerator<TFirst> _firstEnumerator;
             private IEnumerator<TSecond> _secondEnumerator;
 
-            internal ZipPartitionIterator(IPartition<TFirst> first, IPartition<TSecond> second, Func<TFirst, TSecond, TResult> selector, int count)
+            internal ZipPartitionIterator(IPartition<TFirst> first, IPartition<TSecond> second, Func<TFirst, TSecond, TResult> selector)
             {
                 Debug.Assert(first != null);
                 Debug.Assert(second != null);
@@ -300,17 +296,11 @@ namespace System.Linq
 
             public override void Dispose()
             {
-                if (_firstEnumerator != null)
-                {
-                    _firstEnumerator.Dispose();
-                    _firstEnumerator = null;
-                }
-
-                if (_secondEnumerator != null)
-                {
-                    _secondEnumerator.Dispose();
-                    _secondEnumerator = null;
-                }
+                _firstEnumerator?.Dispose();
+                _firstEnumerator = null;
+                
+                _secondEnumerator?.Dispose();
+                _secondEnumerator = null;
                 
                 base.Dispose();
             }
@@ -342,7 +332,7 @@ namespace System.Linq
 
             public override IEnumerable<TResult2> Select<TResult2>(Func<TResult, TResult2> selector)
             {
-                return new ZipPartitionIterator<TFirst, TSecond, TResult>(_first, _second, CombineSelectors(_selector, selector));
+                return new ZipPartitionIterator<TFirst, TSecond, TResult2>(_first, _second, CombineSelectors(_selector, selector));
             }
 
             public IPartition<TResult> Skip(int count)
@@ -377,6 +367,7 @@ namespace System.Linq
                             }
                         }
 
+                        Debug.Assert(index == count); // We should have filled all of the slots in the array.
                         return array;
                 }
             }
@@ -406,6 +397,7 @@ namespace System.Linq
                     }
                 }
 
+                Debug.Assert(list.Count == count); // We should have filled the list to the brim.
                 return list;
             }
 
@@ -455,6 +447,183 @@ namespace System.Linq
             }
         }
 
+        private sealed class ZipListAndPartitionIterator<TFirst, TSecond, TResult> : Iterator<TResult>, IPartition<TResult>
+        {
+            private readonly IList<TFirst> _list;
+            private readonly IPartition<TSecond> _partition;
+            private readonly Func<TFirst, TSecond, TResult> _selector;
+            private readonly int _offset; // into the IList. Not relevant for the IPartition, since it has .Skip for skipping items.
+            private readonly int _count;
+            private IEnumerator<TSecond> _partitionEnumerator;
+
+            internal ZipListAndPartitionIterator(IList<TFirst> list, IPartition<TSecond> partition, Func<TFirst, TSecond, TResult> selector, int count)
+                : this(list, partition, selector, 0, count)
+            {
+            }
+
+            private ZipListAndPartitionIterator(IList<TFirst> list, IPartition<TSecond> partition, Func<TFirst, TSecond, TResult> selector, int offset, int count)
+            {
+                Debug.Assert(list != null);
+                Debug.Assert(partition != null);
+                Debug.Assert(selector != null);
+                Debug.Assert(offset >= 0 && offset < count);
+                Debug.Assert(count > 0);
+                Debug.Assert(count <= Math.Min(list.Count, partition.GetCount(true))); // This constructor should only be called if the IPartition can get its count cheaply.
+                Debug.Assert(offset + count <= list.Count);
+                Debug.Assert(offset + count > 0); // offset + count should never overflow as this class is currently written.
+                                                  // The entry point to ZipListIterator in .Zip() passes in 0 for offset, and
+                                                  // .Skip() and .Take() should never increase the value of offset + count.
+                _list = list;
+                _partition = partition;
+                _selector = selector;
+                _offset = offset;
+                _count = count;
+            }
+
+            public override Iterator<TResult> Clone()
+            {
+                return new ZipListAndPartitionIterator<TFirst, TSecond, TResult>(_list, _partition, _selector, _offset, _count);
+            }
+
+            public override void Dispose()
+            {
+                _partitionEnumerator?.Dispose();
+                _partitionEnumerator = null;
+
+                base.Dispose();
+            }
+
+            public int GetCount(bool onlyIfCheap) => _count;
+
+            public override bool MoveNext()
+            {
+                if (_state > _count)
+                {
+                    Dispose();
+                    return false;
+                }
+
+                if (_state == 1)
+                {
+                    _partitionEnumerator = _partition.GetEnumerator();
+                }
+
+                // _state - 1 represents the zero-based index into _list.
+                // IMPORTANT: We need to increment _state before any other virtual functions
+                // are called, in case they function call MoveNext on this iterator.
+                int index = _offset + (_state++ - 1);
+                TFirst firstElement = _list[index];
+
+                if (!_partitionEnumerator.MoveNext())
+                {
+                    Debug.Assert(false, "Unexpectedly reached the end of the partition.");
+                }
+
+                TSecond secondElement = _partitionEnumerator.Current;
+
+                _current = _selector(firstElement, secondElement);
+                return true;
+            }
+
+            public override IEnumerable<TResult2> Select<TResult2>(Func<TResult, TResult2> selector)
+            {
+                return new ZipListAndPartitionIterator<TFirst, TSecond, TResult2>(_list, _partition, CombineSelectors(_selector, selector), _offset, _count);
+            }
+
+            public IPartition<TResult> Skip(int count)
+            {
+                if (count >= _count)
+                {
+                    return EmptyPartition<TResult>.Instance;
+                }
+
+                return new ZipListAndPartitionIterator<TFirst, TSecond, TResult>(_list, _partition.Skip(count), _selector, _offset + count, _count - count);
+            }
+
+            public IPartition<TResult> Take(int count)
+            {
+                if (count >= _count)
+                {
+                    return this;
+                }
+
+                return new ZipListAndPartitionIterator<TFirst, TSecond, TResult>(_list, _partition.Take(count), _selector, _offset, count);
+            }
+
+            public TResult[] ToArray()
+            {
+                Debug.Assert(_count > 0); // See notes in constructor
+
+                var array = new TResult[_count];
+                
+                using (var partitionEnumerator = _partition.GetEnumerator())
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        if (!partitionEnumerator.MoveNext())
+                        {
+                            Debug.Assert(false, "Unexpectedly reached the end of the partition.");
+                        }
+
+                        array[i] = _selector(_list[_offset + i], partitionEnumerator.Current);
+                    }
+                }
+
+                return array;
+            }
+
+            public List<TResult> ToList()
+            {
+                var list = new List<TResult>(_count);
+                
+                using (var partitionEnumerator = _partition.GetEnumerator())
+                {
+                    for (int i = 0; i < _count; i++)
+                    {
+                        if (!partitionEnumerator.MoveNext())
+                        {
+                            Debug.Assert(false, "Unexpectedly reached the end of the partition.");
+                        }
+
+                        list.Add(_selector(_list[_offset + i], partitionEnumerator.Current));
+                    }
+                }
+
+                return list;
+            }
+
+            public TResult TryGetElementAt(int index, out bool found)
+            {
+                if ((uint)index < (uint)_count)
+                {
+                    TSecond secondElement = _partition.TryGetElementAt(index, out found);
+                    if (found)
+                    {
+                        return _selector(_list[_offset + index], secondElement);
+                    }
+                }
+
+                found = false;
+                return default(TResult);
+            }
+
+            public TResult TryGetFirst(out bool found)
+            {
+                Debug.Assert(_count > 0); // The index into the IList should always succeed- see notes in constructor
+
+                TSecond secondElement = _partition.TryGetFirst(out found);
+                return found ? _selector(_list[_offset], secondElement) : default(TResult);
+            }
+
+            public TResult TryGetLast(out bool found)
+            {
+                Debug.Assert(_count > 0); // The index into the IList should always succeed- see notes in constructor
+
+                TSecond secondElement = _partition.TryGetLast(out found);
+                return found ? _selector(_list[_offset + _count - 1], secondElement) : default(TResult);
+            }
+        }
+
         private sealed class ZipEnumerableIterator<TFirst, TSecond, TResult> : Iterator<TResult>
         {
             private readonly IEnumerable<TFirst> _first;
@@ -481,17 +650,11 @@ namespace System.Linq
 
             public override void Dispose()
             {
-                if (_firstEnumerator != null)
-                {
-                    _firstEnumerator.Dispose();
-                    _firstEnumerator = null;
-                }
+                _firstEnumerator?.Dispose();
+                _firstEnumerator = null;
 
-                if (_secondEnumerator != null)
-                {
-                    _secondEnumerator.Dispose();
-                    _secondEnumerator = null;
-                }
+                _secondEnumerator?.Dispose();
+                _secondEnumerator = null;
 
                 base.Dispose();
             }
