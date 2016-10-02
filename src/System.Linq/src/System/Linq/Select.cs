@@ -8,6 +8,12 @@ using static System.Linq.Utilities;
 
 namespace System.Linq
 {
+    // TODO: Make covariant once dotnet/coreclr#603 is fixed.
+    internal interface ISelectProvider<TElement>
+    {
+        IEnumerable<TResult> Select<TResult>(Func<TElement, TResult> selector);
+    }
+
     public static partial class Enumerable
     {
         public static IEnumerable<TResult> Select<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector)
@@ -22,10 +28,10 @@ namespace System.Linq
                 throw Error.ArgumentNull(nameof(selector));
             }
 
-            Iterator<TSource> iterator = source as Iterator<TSource>;
-            if (iterator != null)
+            var provider = source as ISelectProvider<TSource>;
+            if (provider != null)
             {
-                return iterator.Select(selector);
+                return provider.Select(selector);
             }
 
             IList<TSource> ilist = source as IList<TSource>;

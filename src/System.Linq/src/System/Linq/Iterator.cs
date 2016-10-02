@@ -9,7 +9,7 @@ namespace System.Linq
 {
     public static partial class Enumerable
     {
-        internal abstract class Iterator<TSource> : IEnumerable<TSource>, IEnumerator<TSource>
+        internal abstract class Iterator<TSource> : IEnumerable<TSource>, IEnumerator<TSource>, ISelectProvider<TSource>
         {
             private readonly int _threadId;
             internal int _state;
@@ -42,6 +42,8 @@ namespace System.Linq
 
             public abstract bool MoveNext();
 
+            // If your class both subclasses Iterator and implements IPartition, please override this
+            // method to return a SelectIPartitionIterator if no other optimizations can be applied.
             public virtual IEnumerable<TResult> Select<TResult>(Func<TSource, TResult> selector)
             {
                 return new SelectEnumerableIterator<TSource, TResult>(this, selector);

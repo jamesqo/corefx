@@ -48,7 +48,7 @@ namespace System.Linq
         TElement TryGetLast(out bool found);
     }
 
-    internal sealed class EmptyPartition<TElement> : IPartition<TElement>, IEnumerator<TElement>
+    internal sealed class EmptyPartition<TElement> : IPartition<TElement>, IEnumerator<TElement>, ISelectProvider<TElement>
     {
         public static readonly IPartition<TElement> Instance = new EmptyPartition<TElement>();
 
@@ -134,6 +134,11 @@ namespace System.Linq
         public int GetCount(bool onlyIfCheap)
         {
             return 0;
+        }
+
+        public IEnumerable<TResult> Select<TResult>(Func<TElement, TResult> selector)
+        {
+            return EmptyPartition<TResult>.Instance;
         }
     }
 
