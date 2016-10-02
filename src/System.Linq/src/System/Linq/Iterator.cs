@@ -9,7 +9,7 @@ namespace System.Linq
 {
     public static partial class Enumerable
     {
-        internal abstract class Iterator<TSource> : IEnumerable<TSource>, IEnumerator<TSource>, ISelectProvider<TSource>
+        internal abstract class Iterator<TSource> : IEnumerable<TSource>, IEnumerator<TSource>, IMappable<TSource>, IFilterable<TSource>
         {
             private readonly int _threadId;
             internal int _state;

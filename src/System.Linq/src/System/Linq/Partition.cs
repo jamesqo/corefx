@@ -48,7 +48,7 @@ namespace System.Linq
         TElement TryGetLast(out bool found);
     }
 
-    internal sealed class EmptyPartition<TElement> : IPartition<TElement>, IEnumerator<TElement>, ISelectProvider<TElement>
+    internal sealed class EmptyPartition<TElement> : IPartition<TElement>, IEnumerator<TElement>, IMappable<TElement>, IFilterable<TElement>
     {
         public static readonly IPartition<TElement> Instance = new EmptyPartition<TElement>();
 
@@ -139,6 +139,11 @@ namespace System.Linq
         public IEnumerable<TResult> Select<TResult>(Func<TElement, TResult> selector)
         {
             return EmptyPartition<TResult>.Instance;
+        }
+
+        public IEnumerable<TElement> Where(Func<TElement, bool> predicate)
+        {
+            return this;
         }
     }
 

@@ -9,7 +9,7 @@ using static System.Linq.Utilities;
 namespace System.Linq
 {
     // TODO: Make covariant once dotnet/coreclr#603 is fixed.
-    internal interface ISelectProvider<TElement>
+    internal interface IMappable<TElement> : IEnumerable<TElement>
     {
         IEnumerable<TResult> Select<TResult>(Func<TElement, TResult> selector);
     }
@@ -28,10 +28,10 @@ namespace System.Linq
                 throw Error.ArgumentNull(nameof(selector));
             }
 
-            var provider = source as ISelectProvider<TSource>;
-            if (provider != null)
+            var mappable = source as IMappable<TSource>;
+            if (mappable != null)
             {
-                return provider.Select(selector);
+                return mappable.Select(selector);
             }
 
             IList<TSource> ilist = source as IList<TSource>;

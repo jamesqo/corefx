@@ -8,6 +8,12 @@ using static System.Linq.Utilities;
 
 namespace System.Linq
 {
+    // TODO: Make covariant once dotnet/coreclr#603 is fixed.
+    internal interface IFilterable<TElement> : IEnumerable<TElement>
+    {
+        IEnumerable<TElement> Where(Func<TElement, bool> predicate);
+    }
+
     public static partial class Enumerable
     {
         public static IEnumerable<TSource> Where<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
@@ -22,10 +28,10 @@ namespace System.Linq
                 throw Error.ArgumentNull(nameof(predicate));
             }
 
-            Iterator<TSource> iterator = source as Iterator<TSource>;
-            if (iterator != null)
+            var filterable = source as IFilterable<TSource>;
+            if (filterable != null)
             {
-                return iterator.Where(predicate);
+                return filterable.Where(predicate);
             }
 
             TSource[] array = source as TSource[];
