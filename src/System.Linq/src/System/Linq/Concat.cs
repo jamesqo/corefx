@@ -4,11 +4,35 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 namespace System.Linq
 {
     public static partial class Enumerable
     {
+        private static int s_concat2EnumerableBefore;
+        private static int s_concatNEnumerableBefore;
+        private static int s_concat2CollectionBefore;
+        private static int s_concatNCollectionBefore;
+
+        private static int TotalBefore
+        {
+            get { return s_concat2EnumerableBefore + s_concatNEnumerableBefore + s_concat2CollectionBefore + s_concatNCollectionBefore; }
+        }
+
+        private static int s_powerOfTwo = 3; // Start breaking the debugger after 2^3 usages
+
+        private static void IncrementUsageCountAndPossiblyBreakDebugger(ref int location)
+        {
+            location++;
+            if (TotalBefore >= (1 << s_powerOfTwo))
+            {
+                // Make debugger break for when TotalBefore reaches 8, 16, 32, etc.
+                Debugger.Break();
+                s_powerOfTwo++;
+            }
+        }
+
         public static IEnumerable<TSource> Concat<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
         {
             if (first == null)
@@ -79,6 +103,8 @@ namespace System.Linq
 
             internal override ConcatIterator<TSource> ConcatBefore(IEnumerable<TSource> previous)
             {
+                IncrementUsageCountAndPossiblyBreakDebugger(ref s_concat2EnumerableBefore);
+
                 return new ConcatNEnumerableIterator<TSource>(this, previous, 2 | int.MinValue);
             }
 
@@ -144,6 +170,8 @@ namespace System.Linq
 
             internal override ConcatIterator<TSource> ConcatBefore(IEnumerable<TSource> previous)
             {
+                IncrementUsageCountAndPossiblyBreakDebugger(ref s_concatNEnumerableBefore);
+
                 return new ConcatNEnumerableIterator<TSource>(this, previous, (_index | int.MinValue) + 1);
             }
 
@@ -238,6 +266,8 @@ namespace System.Linq
 
             internal override ConcatIterator<TSource> ConcatBefore(IEnumerable<TSource> previous)
             {
+                IncrementUsageCountAndPossiblyBreakDebugger(ref s_concat2CollectionBefore);
+
                 var previousCollection = previous as ICollection<TSource>;
                 if (previousCollection != null)
                 {
@@ -364,6 +394,8 @@ namespace System.Linq
 
             internal override ConcatIterator<TSource> ConcatBefore(IEnumerable<TSource> previous)
             {
+                IncrementUsageCountAndPossiblyBreakDebugger(ref s_concatNCollectionBefore);
+
                 var previousCollection = previous as ICollection<TSource>;
                 if (previousCollection != null)
                 {
