@@ -6,190 +6,152 @@ using System.Diagnostics;
 
 namespace System.Collections.Generic
 {
+    internal struct Gap
+    {
+        internal int _index;
+        internal int _count;
+    }
+
     internal struct LargeArrayBuilder<T>
     {
-        private struct Insertion
-        {
-            internal ICollection<T> _collection;
-            internal int _index;
-        }
-
+        private const int StartingCapacity = 4;
         private const int FirstLimit = 32;
-        private const int InitialFirstCapacity = 4;
 
         private T[] _first;
         private ArrayBuilder<T[]> _others;
-        private ArrayBuilder<Insertion> _insertions;
+        private ArrayBuilder<Gap> _gaps;
         private int _index;
+        private int _count;
+
+        public int Count => _count;
 
         public void Add(T item)
         {
-            T[] destination = _others.Count == 0 ? _first : _others[_others.Count - 1];
-            if (destination == null || _index == destination.Length)
-            {
-                MakeRoomForOneMoreItem(out destination);
-            }
-
+            T[] destination = GetAddDestination();
             destination[_index++] = item;
+            _count++;
         }
 
-        public void AddRange(IEnumerable<T> items)
+        public void AddGap(int count)
         {
-            Debug.Assert(items != null);
-
-            var collection = items as ICollection<T>;
-            if (collection != null)
-            {
-                EnqueueCollectionForInsertion(collection);
-            }
-            else
-            {
-                using (IEnumerator<T> en = items.GetEnumerator())
-                {
-                    AddRange(en);
-                }
-            }
-        }
-
-        public void AddRange(IEnumerator<T> en) => AddRange(en, int.MaxValue);
-
-        public void AddRange(IEnumerator<T> en, int count)
-        {
-            Debug.Assert(en != null);
             Debug.Assert(count >= 0);
-            
-            if (count-- == 0 || !en.MoveNext())
-            {
-                return;
-            }
 
-            T[] destination = _others.Count == 0 ? _first : _others[_others.Count - 1];
-            if (destination == null || _index == destination.Length)
-            {
-                MakeRoomForOneMoreItem(out destination);
-            }
-
-            int space = destination.Length - _index;
-            Debug.Assert(space > 0);
-            
-            do
-            {
-                T current = en.Current;
-                destination[_index++] = current;
-
-                if (--space == 0)
-                {
-                    MakeRoomForOneMoreItem(out destination);
-                }
-            }
-            while (count-- > 0 && en.MoveNext());
-        }
-
-        public int GetCount()
-        {
-            int count = GetCountExcludingCollections();
-
-            for (int i = 0; i < _insertions.Count; i++)
-            {
-                count += _insertions[i]._collection.Count;
-            }
-
-            return count;
+            _gaps.Add(new Gap { _index = _count, _count = count });
+            _count += count;
         }
 
         public T[] ToArray()
         {
-            int count = GetCount();
-            if (count == 0)
+            if (_count == 0)
             {
                 return Array.Empty<T>();
             }
 
-            T[] source = _first;
-            Debug.Assert(source != null);
-
+            var result = new T[_count];
+            
             int copied = 0;
-            int builderIndex = -1; // Into _others
+            int bufferNum = -1;
 
-            var array = new T[count];
-            for (int i = 0; i < _insertions.Count; i++)
+            int sourceIndex = 0;
+            int destinationIndex = 0;
+
+            foreach (Gap gap in _gaps)
             {
-                Insertion insertion = _insertions[i];
 
-                // Copy up to the inserted index
-                int index = insertion._index;
+                // Skip over the gap.
+                int gapCount = gap._count;
+                copied += gapCount;
+                destinationIndex += gapCount;
+            }
 
-                while (copied != index)
+            // Finish up the segment after the final gap.
+        }
+
+        private void CopyTo(int sourceIndex, T[] destination, int destinationIndex, int count)
+        {
+            Debug.Assert(sourceIndex >= 0);
+            Debug.Assert(destination != null);
+            Debug.Assert(count >= 0);
+            Debug.Assert()
+
+            // Copy up to the gap.
+            for ( ; ; bufferNum++)
+            {
+                T[] buffer = bufferNum < 0 ? _first : _others[bufferNum];
+
+                int remaining = indexAfterCopy - copied;
+                if (beforeGap > 0)
                 {
-                    int remaining = index - copied;
-                    int toCopy = Math.Min(source.Length, remaining);
+                    int toCopy = Math.Min(buffer.Length, beforeGap);
 
-                    Array.Copy(source, 0, array, 0, toCopy);
+                    Array.Copy(buffer, sourceIndex, result, destinationIndex, toCopy);
                     copied += toCopy;
-
-                    // @TODO: Switch sources.
+                    destinationIndex += toCopy;
                 }
-
-                // Copy the items from the insertee
-                ICollection<T> insertee = insertion._collection;
-                insertee.CopyTo(array, 0);
-                copied += insertee.Count;
-
-                // @TODO: Need to adjust index of other insertees after one insertee is copied.
-                // For example, if 2 collections are inserted in tandem then currently we will
-                // have copied > index after the first insertee.
-            }
-        }
-
-        private void EnqueueCollectionForInsertion(ICollection<T> collection)
-        {
-            Debug.Assert(collection != null);
-
-            _insertions.Add(new Insertion { _collection = collection, _index = GetCountExcludingCollections() });
-        }
-
-        private int GetCountExcludingCollections()
-        {
-            int count = 0;
-
-            if (_first != null)
-            {
-                count = _first.Length;
-
-                for (int i = 0; i < _others.Count - 1; i++)
+                
+                // - If the gap was before the end of the current buffer, break.
+                // - If the gap was past or at the end of the current buffer, move on.
+                
+                if (beforeGap < buffer.Length)
                 {
-                    count += _others[i].Length;
+                    sourceIndex = beforeGap;
+                    break;
                 }
-
-                count += _index;
             }
-
-            return count;
         }
-
-        private void MakeRoomForOneMoreItem(out T[] destination)
+        
+        private T[] GetAddDestination()
         {
-            // We should only call this method if we've run out of space.
-            Debug.Assert(destination == null || _index == destination.Length);
+            // - On the very first Add, initialize _first from null.
+            // - On subsequent Adds, either do nothing or resize if _first has no more space.
+            // - When we pass FirstLimit, read in subsequent items to buffers in _others
+            //   instead of resizing further. When we allocate a new buffer, add it to _others
+            //   and reset _index to 0.
 
-            if (_first == null | _first.Length < FirstLimit)
+            T[] result;
+            
+            if (_others.Count > 0)
             {
-                int nextCapacity = _first == null ? InitialFirstCapacity : _first.Length * 2;
+                // We're adding to a buffer in _others.
+                Debug.Assert(count > FirstLimit);
 
-                destination = new T[nextCapacity];
-                Array.Copy(_first, 0, destination, 0, _first.Length);
-                _first = destination;
+                result = _others[_others.Count - 1];
+                if (_index == result.Length)
+                {
+                    // No more space in this buffer.
+                    // Add a new buffer twice the size to _others.
+                    result = new T[result.Length * 2];
+                    _others.Add(result);
+                }
+            }
+            else if (_count < FirstLimit)
+            {
+                // We haven't passed FirstLimit, so we're adding to _first.
+                result = _first;
+
+                if (_count == 0 || _index == _first.Length)
+                {
+                    // No more space in _first! We need to resize.
+                    int nextCapacity = _count == 0 ? StartingCapacity : _first.Length * 2;
+
+                    result = new T[nextCapacity];
+                    if (_count > 0)
+                    {
+                        Array.Copy(_first, 0, result, 0, _first.Length);
+                    }
+                    _first = result;
+                }
             }
             else
             {
-                T[] source = _others.Count == 0 ? _first : _others[_others.Count - 1];
-                Debug.Assert(source != null);
+                // Crossover from copying to _first to copying to buffers in _others
+                Debug.Assert(_count == FirstLimit);
 
-                destination = new T[_source.Length];
-                _others.Add(destination);
+                result = new T[FirstLimit];
+                _others.Add(result);
             }
 
-            _index = 0;
+            return result;
         }
     }
 }
