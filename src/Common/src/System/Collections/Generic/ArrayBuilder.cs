@@ -11,6 +11,36 @@ namespace System.Collections.Generic
     /// </summary>
     internal struct ArrayBuilder<T>
     {
+        /// <summary>
+        /// Represents a read-only view of an <see cref="ArrayBuilder{T}"/>.
+        /// </summary>
+        internal struct View
+        {
+            private readonly ArrayBuilder<T> _builder;
+
+            /// <summary>
+            /// Constructs a read-only view from the given <see cref="ArrayBuilder{T}"/>.
+            /// </summary>
+            /// <remarks>
+            /// This method is not intended for public use. Use <see cref="ArrayBuilder{T}.AsView"/> instead.
+            /// </remarks>
+            internal View(ArrayBuilder<T> builder)
+            {
+                _builder = builder;
+            }
+
+            /// <summary>
+            /// Gets the count of the underlying builder.
+            /// </summary>
+            public int Count => _builder.Count;
+
+            /// <summary>
+            /// Gets an item at a specified index in the underlying builder.
+            /// </summary>
+            /// <param name="index">The index into the builder.</param>
+            public T this[int index] => _builder[index];
+        }
+
         private const int DefaultCapacity = 4;
         private const int MaxCoreClrArrayLength = 0x7fefffff; // For byte arrays the limit is slightly larger
 
@@ -72,6 +102,11 @@ namespace System.Collections.Generic
 
             UncheckedAdd(item);
         }
+
+        /// <summary>
+        /// Returns a read-only view of this builder.
+        /// </summary>
+        public View AsView() => new View(this);
 
         /// <summary>
         /// Returns an array with equivalent contents as this builder.
