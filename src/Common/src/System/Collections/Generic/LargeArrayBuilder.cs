@@ -59,7 +59,7 @@ namespace System.Collections.Generic
             
             T[] destination = GetAddBuffer();
             Debug.Assert(_index < destination.Length); // There's room for atl. 1 more item.
-            
+
             do
             {
                 if (_index == destination.Length)
@@ -68,7 +68,7 @@ namespace System.Collections.Generic
                     destination = GetAddBuffer();
                 }
 
-                destination[_index++] = en.Current;
+                destination[_index++] = enumerator.Current;
             }
             while (enumerator.MoveNext());
         }
@@ -142,7 +142,7 @@ namespace System.Collections.Generic
                 CopyAdded(thisIndex, array, arrayIndex, finalCopy);
             }
 
-            Debug.Assert(arrayIndex + toCopy == count, "We should have finished copying to all the slots in the array.");
+            Debug.Assert(arrayIndex + finalCopy == count, "We should have finished copying to all the slots in the array.");
 
             return array;
         }
@@ -160,7 +160,7 @@ namespace System.Collections.Generic
 
             T[] result;
             
-            if (count > ResizeLimit)
+            if (_count > ResizeLimit)
             {
                 // We're adding to a buffer in _others.
                 Debug.Assert(_others.Count > 0);
