@@ -442,7 +442,74 @@ namespace System.Linq
 
             public virtual TSource[] ToArray()
             {
-                return EnumerableHelpers.ToArray(this);
+                var builder = new LargeArrayBuilder<TSource>();
+                builder.Initialize();
+
+                var deferredCopies = new ArrayBuilder<IEnumerable<TSource>>();
+
+                for (int i = 0; ; i++)
+                {
+                    IEnumerable<TSource> source = GetEnumerable(i);
+                    if (source == null)
+                    {
+                        break;
+                    }
+                    
+                    var collection = source as ICollection<TSource>;
+                    if (collection != null)
+                    {
+                        builder.Hop(collection.Count);
+                        deferredCopies.Add(collection);
+                        continue;
+                    }
+
+                    var provider = source as IIListProvider<TSource>;
+                    if (provider != null)
+                    {
+                        int count = provider.GetCount(onlyIfCheap: true);
+                        if (count >= 0)
+                        {
+                            builder.Hop(count);
+                            deferredCopies.Add(provider);
+                            continue;
+                        }
+                    }
+
+                    builder.AddRange(source);
+                }
+
+                TSource[] array = builder.ToArray();
+
+                ArrayBuilder<Hop>.View hops = builder.Hops;
+                Debug.Assert(hops.Count == deferredCopies.Count);
+
+                int hopCount = 0;
+
+                for (int i  = 0; i < hops.Count; i++)
+                {
+                    Hop hop = hops[i];
+                    int index = hop.Index + hopCount;
+                    IEnumerable<TSource> source = deferredCopies[i];
+
+                    var collection = source as ICollection<TSource>;
+                    if (collection != null)
+                    {
+                        collection.CopyTo(array, index);
+                    }
+                    else
+                    {
+                        var provider = (IIListProvider<TSource>)source;
+
+                        foreach (TSource item in provider)
+                        {
+                            array[index++] = item;
+                        }
+                    }
+
+                    hopCount += hop.Count;
+                }
+
+                return array;
             }
 
             public List<TSource> ToList()
