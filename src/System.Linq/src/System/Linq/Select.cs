@@ -143,7 +143,17 @@ namespace System.Linq
                 return new SelectEnumerableIterator<TSource, TResult2>(_source, CombineSelectors(_selector, selector));
             }
 
-            public TResult[] ToArray() => EnumerableHelpers.ToArray(this);
+            public TResult[] ToArray()
+            {
+                var builder = new LargeArrayBuilder<TResult>(initialize: true);
+                
+                foreach (TSource item in _source)
+                {
+                    builder.Add(_selector(item));
+                }
+
+                return builder.ToArray();
+            }
 
             public List<TResult> ToList() => new List<TResult>(this);
 
