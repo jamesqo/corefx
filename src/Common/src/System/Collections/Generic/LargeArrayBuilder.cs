@@ -39,6 +39,40 @@ namespace System.Collections.Generic
             _count++;
         }
 
+        public void AddRange(IEnumerable<T> items)
+        {
+            Debug.Assert(items != null);
+            Debug.Assert(!(items is ICollection<T>), $"For collections, use the {nameof(Hop)} api instead.");
+
+            using (IEnumerator<T> enumerator = items.GetEnumerator())
+            {
+                AddRange(enumerator);
+            }
+        }
+
+        public void AddRange(IEnumerator<T> enumerator)
+        {
+            if (!enumerator.MoveNext())
+            {
+                return;
+            }
+            
+            T[] destination = GetAddBuffer();
+            Debug.Assert(_index < destination.Length); // There's room for atl. 1 more item.
+            
+            do
+            {
+                if (_index == destination.Length)
+                {
+                    // We ran out of space in this buffer from last iteration. Resize.
+                    destination = GetAddBuffer();
+                }
+
+                destination[_index++] = en.Current;
+            }
+            while (enumerator.MoveNext());
+        }
+
         public void CopyAdded(int sourceIndex, T[] destination, int destinationIndex, int count)
         {
             Debug.Assert(sourceIndex >= 0 && destination != null);
