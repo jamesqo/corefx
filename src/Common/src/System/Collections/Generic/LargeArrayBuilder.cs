@@ -67,6 +67,7 @@ namespace System.Collections.Generic
                 {
                     // We ran out of space in this buffer from last iteration. Resize.
                     _count += index - _index;
+                    _index = index;
                     destination = GetAddBuffer();
                     index = _index;
                 }
