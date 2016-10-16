@@ -442,9 +442,7 @@ namespace System.Linq
 
             public virtual TSource[] ToArray()
             {
-                var builder = new LargeArrayBuilder<TSource>();
-                builder.Initialize();
-
+                var builder = new LargeArrayBuilder<TSource>(initialize: true);
                 var deferredCopies = new ArrayBuilder<IEnumerable<TSource>>();
 
                 for (int i = 0; ; i++)

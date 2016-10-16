@@ -30,9 +30,7 @@ namespace System.Collections.Generic
                 return result;
             }
             
-            var builder = new LargeArrayBuilder<T>();
-            builder.Initialize();
-            
+            var builder = new LargeArrayBuilder<T>(initialize: true);
             builder.AddRange(source);
             return builder.ToArray();
         }

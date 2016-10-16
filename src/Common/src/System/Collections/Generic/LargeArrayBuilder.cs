@@ -32,6 +32,15 @@ namespace System.Collections.Generic
         private int _index;                // Index into the current buffer.
         private int _count;                // Count of all of the items in this builder, excluding hops.
 
+        public LargeArrayBuilder(bool initialize) : this()
+        {
+            // This is a workaround for C# not having parameterless struct constructors yet.
+            // Once it gets them, replace this with a parameterless constructor.
+            Debug.Assert(initialize);
+
+            _first = _current = Array.Empty<T>();
+        }
+
         public int Count => _count;
 
         public ArrayBuilder<Hop>.View Hops => _hops.AsView();
@@ -112,14 +121,6 @@ namespace System.Collections.Generic
         public void Hop(int count)
         {
             _hops.Add(new Hop(count: count, index: _count));
-        }
-
-        public void Initialize()
-        {
-            // This is a workaround for C# not having parameterless struct constructors yet.
-            // Once it gets them, remove this method and put this in the constructor.
-
-            _first = _current = Array.Empty<T>();
         }
 
         public T[] ToArray()
