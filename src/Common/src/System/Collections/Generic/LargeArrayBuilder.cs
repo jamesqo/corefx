@@ -58,19 +58,25 @@ namespace System.Collections.Generic
             }
             
             T[] destination = GetAddBuffer();
-            Debug.Assert(_index < destination.Length); // There's room for atl. 1 more item.
+            int index = _index;
+            Debug.Assert(index < destination.Length); // There's room for atl. 1 more item.
 
             do
             {
-                if (_index == destination.Length)
+                if (index == destination.Length)
                 {
                     // We ran out of space in this buffer from last iteration. Resize.
+                    _count += index - _index;
                     destination = GetAddBuffer();
+                    index = _index;
                 }
 
-                destination[_index++] = enumerator.Current;
+                destination[index++] = enumerator.Current;
             }
             while (enumerator.MoveNext());
+
+            _count += index - _index;
+            _index = index;
         }
 
         public void CopyAdded(int sourceIndex, T[] destination, int destinationIndex, int count)
