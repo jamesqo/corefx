@@ -24,7 +24,8 @@ namespace System.Collections.Generic
         private T[] _first;                // The first buffer we store items in. Resized until ResizeLimit.
         private ArrayBuilder<T[]> _others; // After ResizeLimit, we store subsequent items in buffers here.
         private ArrayBuilder<Hop> _hops;   // 'Hops' we have to make in the array produced in ToArray.
-        private int _index;                // Index into the current buffer we're reading into.
+        private T[] _current;              // Current buffer we're reading into.
+        private int _index;                // Index into the current buffer.
         private int _count;                // Count of all of the items in this builder, excluding hops.
 
         public int Count => _count;
@@ -33,9 +34,12 @@ namespace System.Collections.Generic
 
         public void Add(T item)
         {
-            T[] destination = GetAddBuffer();
+            if (_count == 0 || _index == _current.Length)
+            {
+                AllocateBuffer();
+            }
 
-            destination[_index++] = item;
+            _current[_index++] = item;
             _count++;
         }
 
@@ -56,8 +60,13 @@ namespace System.Collections.Generic
             {
                 return;
             }
-            
-            T[] destination = GetAddBuffer();
+
+            if (_count == 0 || _index == _current.Length)
+            {
+                AllocateBuffer();
+            }
+
+            T[] destination = _current;
             int index = _index;
             Debug.Assert(index < destination.Length); // There's room for atl. 1 more item.
 
@@ -68,7 +77,7 @@ namespace System.Collections.Generic
                     // We ran out of space in this buffer from last iteration. Resize.
                     _count += index - _index;
                     _index = index;
-                    destination = GetAddBuffer();
+                    destination = AllocateBuffer();
                     index = _index;
                 }
 
@@ -154,64 +163,43 @@ namespace System.Collections.Generic
             return array;
         }
         
-        private T[] GetAddBuffer()
+        private T[] AllocateBuffer()
         {
-            // Return the buffer we're reading into, or allocate a new one.
-            // The returned buffer must have room for at least 1 more item @ _index.
-
             // - On the very first Add, initialize _first from null.
-            // - On subsequent Adds, either return _first or resize if _first has no more space.
+            // - On subsequent Adds, resize _first.
             // - When we pass ResizeLimit, read in subsequent items to buffers in _others
             //   instead of resizing further. When we allocate a new buffer, add it to _others
             //   and reset _index to 0.
+            // - Store the result of this in _current and return it.
+
+            Debug.Assert(_count == 0 || _index == _current.Length, $"{nameof(AllocateBuffer)} was called, but there's more space.");
 
             T[] result;
-            
-            if (_count > ResizeLimit)
-            {
-                // We're adding to a buffer in _others.
-                Debug.Assert(_others.Count > 0);
 
-                result = _others[_others.Count - 1];
-                if (_index == result.Length)
+            if (_count < ResizeLimit)
+            {
+                // We haven't passed ResizeLimit. Resize _first, copying over the previous items.
+                Debug.Assert(_current == _first);
+
+                int nextCapacity = _count == 0 ? StartingCapacity : _first.Length * 2;
+
+                result = new T[nextCapacity];
+                if (_count > 0)
                 {
-                    // No more space in this buffer.
-                    // Add a new buffer twice the size to _others.
-                    result = new T[result.Length * 2];
-                    _others.Add(result);
-                    _index = 0;
+                    Array.Copy(_first, 0, result, 0, _first.Length);
                 }
+                _first = result;
             }
             else
             {
-                // We haven't passed ResizeLimit. All of the items so far have been added to _first.
-                result = _first;
-
-                if (_count == 0 || _index == _first.Length)
-                {
-                    // No more space in _first!
-                    if (_count == ResizeLimit)
-                    {
-                        // Instead of resizing _first more, start adding subsequent items to buffers in _others.
-                        result = new T[ResizeLimit];
-                        _others.Add(result);
-                        _index = 0;
-                    }
-                    else
-                    {
-                        // Resize _first, copying over the previous items.
-                        int nextCapacity = _count == 0 ? StartingCapacity : _first.Length * 2;
-
-                        result = new T[nextCapacity];
-                        if (_count > 0)
-                        {
-                            Array.Copy(_first, 0, result, 0, _first.Length);
-                        }
-                        _first = result;
-                    }
-                }
+                // We're adding to a buffer in _others.
+                int nextCapacity = _count == ResizeLimit ? ResizeLimit : _current.Length * 2;
+                result = new T[nextCapacity];
+                _others.Add(result);
+                _index = 0;
             }
 
+            _current = result;
             return result;
         }
 
