@@ -27,12 +27,13 @@ namespace System.Collections.Generic
 
         public void Add(T item)
         {
-            T[] destination = GetAddDestination();
-            destination[_index++] = item;
+            T[] buffer = GetAddBuffer();
+
+            buffer[_index++] = item;
             _count++;
         }
 
-        public void AddGap(int count)
+        public void SkipCopy(int count)
         {
             Debug.Assert(count >= 0);
 
@@ -40,34 +41,7 @@ namespace System.Collections.Generic
             _count += count;
         }
 
-        public T[] ToArray()
-        {
-            if (_count == 0)
-            {
-                return Array.Empty<T>();
-            }
-
-            var result = new T[_count];
-            
-            int copied = 0;
-            int bufferNum = -1;
-
-            int sourceIndex = 0;
-            int destinationIndex = 0;
-
-            foreach (Gap gap in _gaps)
-            {
-
-                // Skip over the gap.
-                int gapCount = gap._count;
-                copied += gapCount;
-                destinationIndex += gapCount;
-            }
-
-            // Finish up the segment after the final gap.
-        }
-
-        private void CopyTo(int sourceIndex, T[] destination, int destinationIndex, int count)
+        public void CopyAdded(int sourceIndex, T[] destination, int destinationIndex, int count)
         {
             Debug.Assert(sourceIndex >= 0);
             Debug.Assert(destination != null);
@@ -99,21 +73,36 @@ namespace System.Collections.Generic
                 }
             }
         }
+
+        public T[] ToArray()
+        {
+            if (_count == 0)
+            {
+                return Array.Empty<T>();
+            }
+
+            var result = new T[_count];
+            
+            for (int i = 0; i < _gaps.Count; i++)
+            {
+                Gap gap = gaps[i];
+            }
+        }
         
-        private T[] GetAddDestination()
+        private T[] GetAddBuffer()
         {
             // - On the very first Add, initialize _first from null.
-            // - On subsequent Adds, either do nothing or resize if _first has no more space.
+            // - On subsequent Adds, either return _first or resize if _first has no more space.
             // - When we pass FirstLimit, read in subsequent items to buffers in _others
             //   instead of resizing further. When we allocate a new buffer, add it to _others
             //   and reset _index to 0.
 
             T[] result;
             
-            if (_others.Count > 0)
+            if (count > FirstLimit)
             {
                 // We're adding to a buffer in _others.
-                Debug.Assert(count > FirstLimit);
+                Debug.Assert(_others.Count > 0);
 
                 result = _others[_others.Count - 1];
                 if (_index == result.Length)
@@ -122,33 +111,37 @@ namespace System.Collections.Generic
                     // Add a new buffer twice the size to _others.
                     result = new T[result.Length * 2];
                     _others.Add(result);
-                }
-            }
-            else if (_count < FirstLimit)
-            {
-                // We haven't passed FirstLimit, so we're adding to _first.
-                result = _first;
-
-                if (_count == 0 || _index == _first.Length)
-                {
-                    // No more space in _first! We need to resize.
-                    int nextCapacity = _count == 0 ? StartingCapacity : _first.Length * 2;
-
-                    result = new T[nextCapacity];
-                    if (_count > 0)
-                    {
-                        Array.Copy(_first, 0, result, 0, _first.Length);
-                    }
-                    _first = result;
+                    _index = 0;
                 }
             }
             else
             {
-                // Crossover from copying to _first to copying to buffers in _others
-                Debug.Assert(_count == FirstLimit);
+                // We haven't passed FirstLimit. All of the items so far have been added to _first.
+                result = _first;
 
-                result = new T[FirstLimit];
-                _others.Add(result);
+                if (_count == 0 || _index == _first.Length)
+                {
+                    // No more space in _first!
+                    if (_count == FirstLimit)
+                    {
+                        // Instead of resizing _first more, start adding subsequent items to buffers in _others.
+                        result = new T[FirstLimit];
+                        _others.Add(result);
+                        _index = 0;
+                    }
+                    else
+                    {
+                        // Resize _first, copying over the previous items.
+                        int nextCapacity = _count == 0 ? StartingCapacity : _first.Length * 2;
+
+                        result = new T[nextCapacity];
+                        if (_count > 0)
+                        {
+                            Array.Copy(_first, 0, result, 0, _first.Length);
+                        }
+                        _first = result;
+                    }
+                }
             }
 
             return result;
