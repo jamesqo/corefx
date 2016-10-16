@@ -94,14 +94,15 @@ namespace System.Collections.Generic
 
             while (count > 0)
             {
+                // Find the buffer and actual index associated with the index.
                 int realIndex;
-                T[] buffer = GetLocationFromIndex(sourceIndex, out realIndex);
+                T[] buffer = GetBufferFromIndex(sourceIndex, out realIndex);
                 
                 // Copy until we satisfy count, or we reach the end of the buffer.
                 int toCopy = Math.Min(count, buffer.Length);
-                Debug.Assert(toCopy > 0);
                 Array.Copy(buffer, realIndex, destination, destinationIndex, toCopy);
 
+                // Increment variables to that position.
                 count -= toCopy;
                 sourceIndex += toCopy;
                 destinationIndex += toCopy;
@@ -216,7 +217,7 @@ namespace System.Collections.Generic
             return result;
         }
 
-        private T[] GetLocationFromIndex(int index, out int realIndex)
+        private T[] GetBufferFromIndex(int index, out int realIndex)
         {
             Debug.Assert(index >= 0 && index < Count);
             Debug.Assert(_first != null); // Otherwise, Count == 0 and the first 2 conditions are disjoint
