@@ -8,11 +8,15 @@ namespace System.Collections.Generic
 {
     internal struct Hop
     {
-        internal int _index; // Index into the builder's buffers (not incl. other hops) we're into.
-        internal int _count; // How many slots to hop over.
+        internal Hop(int count, int index)
+        {
+            Debug.Assert(count >= 0 && index >= 0);
+            Count = count;
+            Index = index;
+        }
 
-        public int Count => _count;
-        public int Index => _index;
+        public int Count { get; } // How many slots to hop over.
+        public int Index { get; } // Index into the builder's buffers (excl. other hops) we're into.
     }
 
     internal struct LargeArrayBuilder<T>
@@ -34,7 +38,7 @@ namespace System.Collections.Generic
 
         public void Add(T item)
         {
-            if (_count == 0 || _index == _current.Length)
+            if (_index == _current.Length)
             {
                 AllocateBuffer();
             }
@@ -56,35 +60,27 @@ namespace System.Collections.Generic
 
         public void AddRange(IEnumerator<T> enumerator)
         {
-            if (!enumerator.MoveNext())
-            {
-                return;
-            }
-
-            if (_count == 0 || _index == _current.Length)
-            {
-                AllocateBuffer();
-            }
-
             T[] destination = _current;
             int index = _index;
-            Debug.Assert(index < destination.Length); // There's room for atl. 1 more item.
 
-            do
+            // Continuously read in items from the enumerator, updating _count
+            // and _index when we run out of space.
+
+            while (enumerator.MoveNext())
             {
                 if (index == destination.Length)
                 {
-                    // We ran out of space in this buffer from last iteration. Resize.
+                    // No more space in this buffer. Resize.
                     _count += index - _index;
                     _index = index;
                     destination = AllocateBuffer();
-                    index = _index;
+                    index = _index; // May have been reset to 0
                 }
 
                 destination[index++] = enumerator.Current;
             }
-            while (enumerator.MoveNext());
 
+            // Final update to _count and _index.
             _count += index - _index;
             _index = index;
         }
@@ -114,9 +110,15 @@ namespace System.Collections.Generic
 
         public void Hop(int count)
         {
-            Debug.Assert(count >= 0);
+            _hops.Add(new Hop(count: count, index: _count));
+        }
 
-            _hops.Add(new Hop { _index = _count, _count = count });
+        public void Initialize()
+        {
+            // This is a workaround for C# not having parameterless struct constructors yet.
+            // Once it gets them, remove this method and put this in the constructor.
+
+            _first = _current = Array.Empty<T>();
         }
 
         public T[] ToArray()
@@ -137,7 +139,7 @@ namespace System.Collections.Generic
                 Hop hop = _hops[i];
 
                 // Copy up to the index represented by the hop.
-                int toCopy = hop._index - thisIndex;
+                int toCopy = hop.Index - thisIndex;
                 if (toCopy > 0) // Can be 0 when 2 hops are added in a row, so they have the same indices and the segment between them is 0.
                 {
                     CopyAdded(thisIndex, array, arrayIndex, toCopy);
@@ -146,7 +148,7 @@ namespace System.Collections.Generic
                 }
 
                 // Skip the hop.
-                arrayIndex += hop._count;
+                arrayIndex += hop.Count;
                 // Since hops are not represented in our buffers, we don't
                 // have to touch thisIndex here.
             }
@@ -165,14 +167,13 @@ namespace System.Collections.Generic
         
         private T[] AllocateBuffer()
         {
-            // - On the very first Add, initialize _first from null.
-            // - On subsequent Adds, resize _first.
+            // - On the first few adds, simply resize _first.
             // - When we pass ResizeLimit, read in subsequent items to buffers in _others
             //   instead of resizing further. When we allocate a new buffer, add it to _others
             //   and reset _index to 0.
             // - Store the result of this in _current and return it.
 
-            Debug.Assert(_count == 0 || _index == _current.Length, $"{nameof(AllocateBuffer)} was called, but there's more space.");
+            Debug.Assert(_index == _current.Length, $"{nameof(AllocateBuffer)} was called, but there's more space.");
 
             T[] result;
 
@@ -184,16 +185,16 @@ namespace System.Collections.Generic
                 int nextCapacity = _count == 0 ? StartingCapacity : _first.Length * 2;
 
                 result = new T[nextCapacity];
-                if (_count > 0)
-                {
-                    Array.Copy(_first, 0, result, 0, _first.Length);
-                }
+                Array.Copy(_first, 0, result, 0, _first.Length);
                 _first = result;
             }
             else
             {
                 // We're adding to a buffer in _others.
+                // If we just transitioned from resizing, allocate a buffer with the same capacity
+                // as _first. Otherwise, allocate a buffer with twice the capacity as the last one.
                 int nextCapacity = _count == ResizeLimit ? ResizeLimit : _current.Length * 2;
+
                 result = new T[nextCapacity];
                 _others.Add(result);
                 _index = 0;
@@ -209,7 +210,7 @@ namespace System.Collections.Generic
 
             for (int i = 0; i < _hops.Count; i++)
             {
-                result += _hops[i]._count;
+                result += _hops[i].Count;
             }
 
             return result;
