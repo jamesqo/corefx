@@ -6,19 +6,6 @@ using System.Diagnostics;
 
 namespace System.Collections.Generic
 {
-    internal struct Hop
-    {
-        internal Hop(int count, int index)
-        {
-            Debug.Assert(count >= 0 && index >= 0);
-            Count = count;
-            Index = index;
-        }
-
-        public int Count { get; } // How many slots to hop over.
-        public int Index { get; } // Index into the builder's buffers (excl. other hops) we're into.
-    }
-
     internal struct LargeArrayBuilder<T>
     {
         private const int StartingCapacity = 4;
@@ -27,10 +14,9 @@ namespace System.Collections.Generic
 
         private T[] _first;                // The first buffer we store items in. Resized until ResizeLimit.
         private ArrayBuilder<T[]> _others; // After ResizeLimit, we store subsequent items in buffers here.
-        private ArrayBuilder<Hop> _hops;   // 'Hops' we have to make in the array produced in ToArray.
         private T[] _current;              // Current buffer we're reading into.
         private int _index;                // Index into the current buffer.
-        private int _count;                // Count of all of the items in this builder, excluding hops.
+        private int _count;                // Count of all of the items in this builder.
 
         public LargeArrayBuilder(bool initialize) : this()
         {
@@ -42,8 +28,6 @@ namespace System.Collections.Generic
         }
 
         public int Count => _count;
-
-        public ArrayBuilder<Hop>.View Hops => _hops.AsView();
 
         public void Add(T item)
         {
@@ -59,7 +43,6 @@ namespace System.Collections.Generic
         public void AddRange(IEnumerable<T> items)
         {
             Debug.Assert(items != null);
-            Debug.Assert(!(items is ICollection<T>), $"For collections, use the {nameof(Hop)} api instead.");
 
             using (IEnumerator<T> enumerator = items.GetEnumerator())
             {
@@ -94,7 +77,7 @@ namespace System.Collections.Generic
             _index = index;
         }
 
-        public void CopyAdded(int sourceIndex, T[] destination, int destinationIndex, int count)
+        public void CopyTo(int sourceIndex, T[] destination, int destinationIndex, int count)
         {
             Debug.Assert(sourceIndex >= 0 && destination != null);
             Debug.Assert(destinationIndex >= 0 && count >= 0);
@@ -118,52 +101,15 @@ namespace System.Collections.Generic
             }
         }
 
-        public void Hop(int count)
-        {
-            _hops.Add(new Hop(count: count, index: _count));
-        }
-
         public T[] ToArray()
         {
-            int count = GetCountIncludingHops();
-
-            if (count == 0)
+            if (_count == 0)
             {
                 return Array.Empty<T>();
             }
 
-            var array = new T[count];
-            int thisIndex = 0;
-            int arrayIndex = 0;
-
-            for (int i = 0; i < _hops.Count; i++)
-            {
-                Hop hop = _hops[i];
-
-                // Copy up to the index represented by the hop.
-                int toCopy = hop.Index - thisIndex;
-                if (toCopy > 0) // Can be 0 when 2 hops are added in a row, so they have the same indices and the segment between them is 0.
-                {
-                    CopyAdded(thisIndex, array, arrayIndex, toCopy);
-                    thisIndex += toCopy;
-                    arrayIndex += toCopy;
-                }
-
-                // Skip the hop.
-                arrayIndex += hop.Count;
-                // Since hops are not represented in our buffers, we don't
-                // have to touch thisIndex here.
-            }
-
-            // Copy the segment after the final hop.
-            int finalCopy = _count - thisIndex;
-            if (finalCopy > 0) // Again, can happen if a hop was added last.
-            {
-                CopyAdded(thisIndex, array, arrayIndex, finalCopy);
-            }
-
-            Debug.Assert(arrayIndex + finalCopy == count, "We should have finished copying to all the slots in the array.");
-
+            var array = new T[_count];
+            CopyTo(0, array, 0, _count);
             return array;
         }
         
@@ -203,18 +149,6 @@ namespace System.Collections.Generic
             }
 
             _current = result;
-            return result;
-        }
-
-        private int GetCountIncludingHops()
-        {
-            int result = _count;
-
-            for (int i = 0; i < _hops.Count; i++)
-            {
-                result += _hops[i].Count;
-            }
-
             return result;
         }
 
