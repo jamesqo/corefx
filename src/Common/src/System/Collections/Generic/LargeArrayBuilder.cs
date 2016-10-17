@@ -77,27 +77,25 @@ namespace System.Collections.Generic
             _index = index;
         }
 
-        public void CopyTo(int sourceIndex, T[] destination, int destinationIndex, int count)
+        public void CopyTo(T[] array, int arrayIndex, int count)
         {
-            Debug.Assert(sourceIndex >= 0 && destination != null);
-            Debug.Assert(destinationIndex >= 0 && count >= 0);
-            Debug.Assert(Count - sourceIndex >= count);
-            Debug.Assert(destination.Length - destinationIndex >= count);
-
-            while (count > 0)
+            Debug.Assert(array != null);
+            Debug.Assert(arrayIndex >= 0);
+            Debug.Assert(count >= 0 && count <= Count);
+            Debug.Assert(array.Length - arrayIndex >= count);
+            
+            for (int i = -1; count > 0; i++)
             {
-                // Find the buffer and actual index associated with the index.
-                int realIndex;
-                T[] buffer = GetBufferFromIndex(sourceIndex, out realIndex);
+                // Find the buffer we're copying from.
+                T[] buffer = i < 0 ? _first : _others[i];
                 
                 // Copy until we satisfy count, or we reach the end of the buffer.
                 int toCopy = Math.Min(count, buffer.Length);
-                Array.Copy(buffer, realIndex, destination, destinationIndex, toCopy);
+                Array.Copy(buffer, 0, array, arrayIndex, toCopy);
 
                 // Increment variables to that position.
                 count -= toCopy;
-                sourceIndex += toCopy;
-                destinationIndex += toCopy;
+                arrayIndex += toCopy;
             }
         }
 
@@ -109,7 +107,7 @@ namespace System.Collections.Generic
             }
 
             var array = new T[_count];
-            CopyTo(0, array, 0, _count);
+            CopyTo(array, 0, _count);
             return array;
         }
         
@@ -149,58 +147,6 @@ namespace System.Collections.Generic
             }
 
             _current = result;
-            return result;
-        }
-
-        private T[] GetBufferFromIndex(int index, out int realIndex)
-        {
-            Debug.Assert(index >= 0 && index < Count);
-            Debug.Assert(_first != null); // Otherwise, Count == 0 and the first 2 conditions are disjoint
-
-            if (index < 32)
-            {
-                realIndex = index;
-                return _first;
-            }
-
-            // index rounded to the previous pow of 2, log2, - log2(ResizeLimit) determines what buffer we'll go to.
-            // The distance it is from this power is the actual index.
-
-            /*  Example cases:
-                index == 32  -> [0], 0
-                index == 63  -> [0], 31
-                index == 64  -> [1], 0
-                index == 127 -> [1], 63
-                index == 128 -> [2], 0
-                index == 255 -> [2], 127
-            */
-
-            int exponent = FloorLog2(index);
-            int powerOfTwo = 1 << exponent;
-            Debug.Assert(exponent >= Log2ResizeLimit && powerOfTwo <= index);
-
-            realIndex = index - powerOfTwo;
-            return _others[exponent - Log2ResizeLimit];
-        }
-
-        private static int FloorLog2(int value)
-        {
-            Debug.Assert(value > 0);
-            
-            // TODO: It may be possible to improve perf here using something
-            // from http://graphics.stanford.edu/~seander/bithacks.html
-
-            // We want the jit to generate code for unsigned, not arithmetic, right shifts.
-            uint ui = (uint)value;
-            int result = -1;
-
-            do
-            {
-                ui >>= 1;
-                result++;
-            }
-            while (ui > 0);
-
             return result;
         }
     }
