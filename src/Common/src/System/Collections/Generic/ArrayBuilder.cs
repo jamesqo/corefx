@@ -107,6 +107,32 @@ namespace System.Collections.Generic
         }
 
         /// <summary>
+        /// Creates a circular buffer from this builder.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Before calling this method, the caller should ensure that <see cref="Count"/> is
+        /// non-zero and is equal to <see cref="Capacity"/>.
+        /// </para>
+        /// <para>
+        /// Do not use this builder again after calling this method.
+        /// </para>
+        /// </remarks>
+        public WeakCircularBuffer<T> ToCircular()
+        {
+            T[] array = _array;
+
+#if DEBUG
+            Debug.Assert(_count > 0 && _count == _array.Length);
+
+            _array = null;
+            _count = -1;
+#endif
+
+            return new WeakCircularBuffer<T>(array);
+        }
+
+        /// <summary>
         /// Adds an item to the backing array, without checking if there is room.
         /// </summary>
         /// <param name="item">The item to add.</param>

@@ -59,6 +59,7 @@
     <Compile Include="Shuffler.cs" />
     <Compile Include="SingleOrDefaultTests.cs" />
     <Compile Include="SingleTests.cs" />
+    <Compile Include="SkipTakeData.cs" />
     <Compile Include="SkipTests.cs" />
     <Compile Include="SkipWhileTests.cs" />
     <Compile Include="SumTests.cs" />
@@ -80,6 +81,8 @@
   </ItemGroup>
   <ItemGroup Condition="'$(TargetGroup)' == 'netcoreapp1.1'">
     <Compile Include="ToHashSetTests.netcoreapp1.1.cs" />
+    <Compile Include="SkipLastTests.netcoreapp1.1.cs" />
+    <Compile Include="TakeLastTests.netcoreapp1.1.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\pkg\System.Linq.pkgproj">
