@@ -139,6 +139,111 @@ namespace System.Linq
             return SkipLastIterator(source, count);
         }
 
+        private sealed class SkipLastIterator<TSource> : Iterator<TSource>, IIListProvider<TSource>
+        {
+            private readonly IEnumerable<TSource> _source;
+            private readonly int _count;
+            private IEnumerator<TSource> _enumerator;
+            private CircularBuffer<TSource> _buffer;
+
+            internal SkipLastIterator(IEnumerable<TSource> source, int count)
+            {
+                Debug.Assert(source != null);
+                Debug.Assert(count > 0);
+
+                _source = source;
+                _count = count;
+            }
+
+            public override Iterator<TSource> Clone()
+            {
+                return new SkipLastIterator<TSource>(_source, _count);
+            }
+
+            public override void Dispose()
+            {
+                if (_enumerator != null)
+                {
+                    _enumerator.Dispose();
+                    _enumerator = null;
+                }
+
+                _buffer.Dispose();
+
+                base.Dispose();
+            }
+
+            public int GetCount(bool onlyIfCheap)
+            {
+                int sourceCount;
+                return EnumerableHelpers.TryGetCount(_source, out sourceCount) ? Math.Max(0, sourceCount - _count) : -1;
+            }
+
+            public override bool MoveNext()
+            {
+                switch (_state)
+                {
+                    case 1:
+                        // Retrieve the enumerator from the source.
+                        _enumerator = _source.GetEnumerator();
+                        _state = 2;
+                        goto case 2;
+                    case 2:
+                        // Accumulate the first N items into a buffer.
+                        var buffer = new CircularBuffer<TSource>(_count);
+                        
+                        while (_enumerator.MoveNext())
+                        {
+                            buffer.Add(_enumerator.Current);
+                            if (buffer.Count == _count)
+                            {
+                                break;
+                            }
+                        }
+
+                        // If the enumeration ended early, we have nothing to yield.
+                        if (buffer.Count < _count)
+                        {
+                            break;
+                        }
+
+                        _buffer = buffer;
+                        _state = 3;
+                        goto case 3;
+                    case 3:
+                        // Interleave between reading in an item and yielding the oldest item.
+                        // Using a circular buffer makes these operations O(1).
+
+                        if (_enumerator.MoveNext())
+                        {
+                            _buffer.Exchange(_enumerator.Current, out _current);
+                            return true;
+                        }
+
+                        break;
+                }
+
+                Dispose();
+                return false;
+            }
+
+            public TSource[] ToArray()
+            {
+                var buffer = new CircularBuffer<TSource>(_count);
+
+                foreach (TSource item in _source)
+                {
+                    buffer.Add(item);
+                    if (buffer.Count == _count)
+                    {
+                        break;
+                    }
+                }
+
+
+            }
+        }
+
         private static IEnumerable<TSource> SkipLastIterator<TSource>(IEnumerable<TSource> source, int count)
         {
             Debug.Assert(source != null);

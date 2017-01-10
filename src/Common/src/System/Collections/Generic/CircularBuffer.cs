@@ -37,17 +37,23 @@ namespace System.Collections.Generic
         /// </summary>
         private int _index;
 
+#if DEBUG
+        /// <summary>
+        /// Ensures callers do not use certain methods after <see cref="Exchange"/> is called.
+        /// </summary>
+        private bool _exchangeCalled;
+#endif
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CircularBuffer{T}"/> struct.
         /// </summary>
         /// <param name="maxCapacity">The maximum capacity this buffer can have.</param>
-        private CircularBuffer(int maxCapacity)
+        public CircularBuffer(int maxCapacity) : this()
         {
             Debug.Assert(maxCapacity > 0);
 
             _maxCapacity = maxCapacity;
             _array = Array.Empty<T>();
-            _index = 0;
         }
 
         /// <summary>
@@ -56,12 +62,19 @@ namespace System.Collections.Generic
         private int Capacity => _array.Length;
 
         /// <summary>
+        /// Gets the number of items added to this buffer.
+        /// This is only valid before <see cref="Exchange"/> is called.
+        /// </summary>
+        public int Count => _index;
+
+        /// <summary>
         /// Adds an item to this buffer.
         /// </summary>
         /// <param name="item">The item.</param>
         public void Add(T item)
         {
             Debug.Assert(_index < _maxCapacity);
+            ValidateDebugState(exchangeCalled: false);
 
             if (_index == Capacity)
             {
@@ -80,6 +93,8 @@ namespace System.Collections.Generic
         /// </remarks>
         public void Dispose()
         {
+            ValidateDebugState(exchangeCalled: true);
+
             _array = null;
         }
 
@@ -91,6 +106,9 @@ namespace System.Collections.Generic
         public void Exchange(T newItem, out T oldItem)
         {
             Debug.Assert(Capacity == _maxCapacity);
+#if DEBUG
+            _exchangeCalled = true;
+#endif
 
             if (_index == Capacity)
             {
@@ -108,6 +126,7 @@ namespace System.Collections.Generic
         {
             Debug.Assert(_index == Capacity);
             Debug.Assert(Capacity < _maxCapacity);
+            ValidateDebugState(exchangeCalled: false);
 
             int capacity = Capacity;
             int nextCapacity = capacity == 0 ? InitialCapacity : capacity * 2;
@@ -125,6 +144,14 @@ namespace System.Collections.Generic
                 Array.Copy(_array, 0, next, 0, _index);
             }
             _array = next;
+        }
+
+        [Conditional("DEBUG")]
+        private void ValidateDebugState(bool exchangeCalled)
+        {
+#if DEBUG
+            Debug.Assert(_exchangeCalled == exchangeCalled);
+#endif
         }
     }
 }
