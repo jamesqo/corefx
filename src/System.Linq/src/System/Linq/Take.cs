@@ -96,5 +96,37 @@ namespace System.Linq
                 yield return element;
             }
         }
+
+#if netcoreapp11
+        public static IEnumerable<TSource> TakeLast<TSource>(this IEnumerable<TSource> source, int count)
+        {
+            if (source == null)
+            {
+                throw Error.ArgumentNull(nameof(source));
+            }
+
+            return TakeLastIterator(source, Math.Max(count, 0));
+        }
+
+        private static IEnumerable<TSource> TakeLastIterator<TSource>(IEnumerable<TSource> source, int count)
+        {
+            var queue = new Queue<TSource>();
+
+            foreach (TSource item in source)
+            {
+                if (queue.Count == count)
+                {
+                    queue.Dequeue();
+                }
+
+                queue.Enqueue(item);
+            }
+
+            while (queue.Count > 0)
+            {
+                yield return queue.Dequeue();
+            }
+        }
+#endif
     }
 }

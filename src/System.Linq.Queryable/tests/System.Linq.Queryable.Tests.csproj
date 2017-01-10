@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
   <PropertyGroup>
@@ -53,9 +53,11 @@
     <Compile Include="SequenceEqualTests.cs" />
     <Compile Include="SingleOrDefaultTests.cs" />
     <Compile Include="SingleTests.cs" />
+    <Compile Include="SkipLastTests.netcoreapp1.1.cs" />
     <Compile Include="SkipTests.cs" />
     <Compile Include="SkipWhileTests.cs" />
     <Compile Include="SumTests.cs" />
+    <Compile Include="TakeLastTests.netcoreapp1.1.cs" />
     <Compile Include="TakeTests.cs" />
     <Compile Include="TakeWhileTests.cs" />
     <Compile Include="ThenByDescendingTests.cs" />
@@ -68,6 +70,11 @@
     <ProjectReference Include="..\pkg\System.Linq.Queryable.pkgproj">
       <Project>{be12b753-c130-4b68-86e3-877f1aee52c0}</Project>
       <Name>System.Linq.Queryable</Name>
+      <Private>true</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\System.Linq\src\System.Linq.csproj">
+      <Project>{CA488507-3B6E-4494-B7BE-7B4EEEB2C4D1}</Project>
+      <Name>System.Linq</Name>
       <Private>true</Private>
     </ProjectReference>
   </ItemGroup>

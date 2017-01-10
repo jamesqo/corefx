@@ -285,5 +285,16 @@ namespace System.Linq.Tests
                 e => e.Where(i => true)
             };
         }
+
+        protected static IEnumerable<T> EphemeralSequence<T>(IEnumerator<T> enumerator)
+        {
+            // TODO: Replace with DelegateBasedEnumerable introduced in
+            // https://github.com/dotnet/corefx/pull/13942/files if that is merged
+            // first, or do the work in that PR if this is merged first.
+            while (enumerator.MoveNext())
+            {
+                yield return enumerator.Current;
+            }
+        }
     }
 }

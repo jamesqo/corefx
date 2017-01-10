@@ -121,5 +121,33 @@ namespace System.Linq
                 }
             }
         }
+
+#if netcoreapp11
+        public static IEnumerable<TSource> SkipLast<TSource>(this IEnumerable<TSource> source, int count)
+        {
+            if (source == null)
+            {
+                throw Error.ArgumentNull(nameof(source));
+            }
+
+            return SkipLastIterator(source, Math.Max(count, 0));
+        }
+
+        private static IEnumerable<TSource> SkipLastIterator<TSource>(IEnumerable<TSource> source, int count)
+        {
+            var queue = new Queue<TSource>();
+
+            foreach (TSource item in source)
+            {
+                if (queue.Count == count)
+                {
+                    yield return item;
+                    queue.Dequeue();
+                }
+                
+                queue.Enqueue(item);
+            }
+        }
+#endif
     }
 }
