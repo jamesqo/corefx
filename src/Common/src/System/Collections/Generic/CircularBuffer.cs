@@ -18,14 +18,12 @@ namespace System.Collections.Generic
         private const int InitialCapacity = 4;
 
         /// <summary>
-        /// The maximum number of items that can fit in one array.
+        /// The maximum number of items that can fit in one array on CoreCLR.
         /// </summary>
+        /// <remarks>
+        /// For byte arrays, the limit is slightly larger.
+        /// </remarks>
         private const int MaxCoreClrArrayLength = 0x7fefffff;
-
-        /// <summary>
-        /// The maximum capacity this buffer can have.
-        /// </summary>
-        private readonly int _maxCapacity;
 
         /// <summary>
         /// The underlying array.
@@ -39,9 +37,9 @@ namespace System.Collections.Generic
 
 #if DEBUG
         /// <summary>
-        /// Ensures callers do not use certain methods after <see cref="Exchange"/> is called.
+        /// Ensures callers do not use certain methods after <see cref="Replace"/> is called.
         /// </summary>
-        private bool _exchangeCalled;
+        private bool _hasReplaced;
 #endif
 
         /// <summary>
@@ -52,7 +50,7 @@ namespace System.Collections.Generic
         {
             Debug.Assert(maxCapacity > 0);
 
-            _maxCapacity = maxCapacity;
+            MaxCapacity = maxCapacity;
             _array = Array.Empty<T>();
         }
 
@@ -63,9 +61,42 @@ namespace System.Collections.Generic
 
         /// <summary>
         /// Gets the number of items added to this buffer.
-        /// This is only valid before <see cref="Exchange"/> is called.
+        /// This is only valid before <see cref="Replace"/> is called.
         /// </summary>
-        public int Count => _index;
+        public int Count
+        {
+            get
+            {
+                Debug.Assert(!HasReplaced);
+                return _index;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether <see cref="Replace"/> has been called. This can only be set in Debug builds.
+        /// </summary>
+#if DEBUG
+        private bool HasReplaced
+        {
+            get { return _hasReplaced; }
+            set
+            {
+                Debug.Assert(value);
+                _hasReplaced = true;
+            }
+        }
+#else
+        private bool HasReplaced
+        {
+            get { throw new InvalidOperationException(); }
+            set { }
+        }
+#endif
+
+        /// <summary>
+        /// The maximum capacity this buffer can have.
+        /// </summary>
+        private int MaxCapacity { get; }
 
         /// <summary>
         /// Adds an item to this buffer.
@@ -73,8 +104,8 @@ namespace System.Collections.Generic
         /// <param name="item">The item.</param>
         public void Add(T item)
         {
-            Debug.Assert(_index < _maxCapacity);
-            ValidateDebugState(exchangeCalled: false);
+            Debug.Assert(_index < MaxCapacity);
+            Debug.Assert(!HasReplaced);
 
             if (_index == Capacity)
             {
@@ -93,7 +124,7 @@ namespace System.Collections.Generic
         /// </remarks>
         public void Dispose()
         {
-            ValidateDebugState(exchangeCalled: true);
+            Debug.Assert(HasReplaced);
 
             _array = null;
         }
@@ -102,21 +133,44 @@ namespace System.Collections.Generic
         /// Replaces the oldest item in this buffer with a new one.
         /// </summary>
         /// <param name="newItem">The new item.</param>
-        /// <param name="oldItem">The old item that was replaced.</param>
-        public void Exchange(T newItem, out T oldItem)
+        /// <returns>The old item that was replaced.</returns>
+        public T Replace(T newItem)
         {
-            Debug.Assert(Capacity == _maxCapacity);
-#if DEBUG
-            _exchangeCalled = true;
-#endif
+            Debug.Assert(_index > 0);
+            Debug.Assert(Capacity == MaxCapacity);
+            HasReplaced = true;
 
             if (_index == Capacity)
             {
                 _index = 0;
             }
 
-            oldItem = _array[_index];
+            T oldItem = _array[_index];
             _array[_index++] = newItem;
+            return oldItem;
+        }
+
+        /// <summary>
+        /// Creates an array from this buffer.
+        /// </summary>
+        /// <returns>An array with the contents of this buffer.</returns>
+        public T[] ToArray()
+        {
+            Debug.Assert(_index > 0);
+            Debug.Assert(Capacity == MaxCapacity);
+            Debug.Assert(HasReplaced);
+
+            int capacity = Capacity;
+            var array = new T[capacity];
+
+            int firstPart = capacity - _index;
+            if (firstPart > 0)
+            {
+                Array.Copy(_array, _index, array, 0, firstPart);
+            }
+
+            Array.Copy(_array, 0, array, firstPart, _index);
+            return array;
         }
 
         /// <summary>
@@ -125,8 +179,8 @@ namespace System.Collections.Generic
         private void Resize()
         {
             Debug.Assert(_index == Capacity);
-            Debug.Assert(Capacity < _maxCapacity);
-            ValidateDebugState(exchangeCalled: false);
+            Debug.Assert(Capacity < MaxCapacity);
+            Debug.Assert(!HasReplaced);
 
             int capacity = Capacity;
             int nextCapacity = capacity == 0 ? InitialCapacity : capacity * 2;
@@ -136,7 +190,7 @@ namespace System.Collections.Generic
                 nextCapacity = Math.Max(capacity + 1, MaxCoreClrArrayLength);
             }
 
-            nextCapacity = Math.Min(nextCapacity, _maxCapacity);
+            nextCapacity = Math.Min(nextCapacity, MaxCapacity);
 
             T[] next = new T[nextCapacity];
             if (_index > 0)
@@ -144,14 +198,6 @@ namespace System.Collections.Generic
                 Array.Copy(_array, 0, next, 0, _index);
             }
             _array = next;
-        }
-
-        [Conditional("DEBUG")]
-        private void ValidateDebugState(bool exchangeCalled)
-        {
-#if DEBUG
-            Debug.Assert(_exchangeCalled == exchangeCalled);
-#endif
         }
     }
 }

@@ -191,15 +191,7 @@ namespace System.Linq
                     case 2:
                         // Accumulate the first N items into a buffer.
                         var buffer = new CircularBuffer<TSource>(_count);
-                        
-                        while (_enumerator.MoveNext())
-                        {
-                            buffer.Add(_enumerator.Current);
-                            if (buffer.Count == _count)
-                            {
-                                break;
-                            }
-                        }
+                        FillBuffer(buffer, _enumerator);
 
                         // If the enumeration ended early, we have nothing to yield.
                         if (buffer.Count < _count)
@@ -216,7 +208,7 @@ namespace System.Linq
 
                         if (_enumerator.MoveNext())
                         {
-                            _buffer.Exchange(_enumerator.Current, out _current);
+                            _current = _buffer.Replace(_enumerator.Current);
                             return true;
                         }
 
@@ -230,17 +222,59 @@ namespace System.Linq
             public TSource[] ToArray()
             {
                 var buffer = new CircularBuffer<TSource>(_count);
+                var builder = new LargeArrayBuilder<TSource>(initialize: true);
 
-                foreach (TSource item in _source)
+                using (IEnumerator<TSource> e = _source.GetEnumerator())
                 {
-                    buffer.Add(item);
+                    FillBuffer(buffer, e);
+
+                    if (buffer.Count < _count)
+                    {
+                        return Array.Empty<TSource>();
+                    }
+
+                    while (e.MoveNext())
+                    {
+                        builder.Add(buffer.Replace(e.Current));
+                    }
+
+                    return builder.ToArray();
+                }
+            }
+
+            public List<TSource> ToList()
+            {
+                var buffer = new CircularBuffer<TSource>(_count);
+                var list = new List<TSource>();
+
+                using (IEnumerator<TSource> e = _source.GetEnumerator())
+                {
+                    FillBuffer(buffer, e);
+
+                    if (buffer.Count < _count)
+                    {
+                        return new List<TSource>();
+                    }
+
+                    while (e.MoveNext())
+                    {
+                        list.Add(buffer.Replace(e.Current));
+                    }
+
+                    return list;
+                }
+            }
+
+            private void FillBuffer(CircularBuffer<TSource> buffer, IEnumerator<TSource> enumerator)
+            {
+                while (enumerator.MoveNext())
+                {
+                    buffer.Add(enumerator.Current);
                     if (buffer.Count == _count)
                     {
                         break;
                     }
                 }
-
-
             }
         }
 
