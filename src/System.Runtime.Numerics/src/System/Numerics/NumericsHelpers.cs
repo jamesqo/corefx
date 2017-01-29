@@ -114,32 +114,15 @@ namespace System.Numerics
         {
             if (d != null && d.Length > 0)
             {
-                // Negate the first uint.
-                // ~x + 1 is the same as -x, but we can't do negation directly with unsigned types.
                 d[0] = ~d[0] + 1;
 
-                // The idea behind the following algorithm is if we simply do ~x on all of the
-                // uints, we will obtain the ones complement for the BigInteger. Then if we add one
-                // to the least significant uint, that will add one to the whole BigInteger and we
-                // will get the twos complement.
-
-                // However, we have to watch out for trailing zeroes. Normally, the hex representations
-                // of a number and its negation should logically sum to the next power of two just
-                // outside the uint range, e.g. 0x11111111 + 0xeeeeeeef == 0x100000000. However, 0's
-                // negation is just 0 because ~0 + 1 overflows, and 0 + 0 == 0. So if we added one
-                // to ~0, we would actually be subtracting 0xffffffff. The solution is to skip any
-                // trailing zeroes (at the start of the array) and carry the 0x100000000 to the first
-                // nonzero uint.
-
-                int i = 0;
-                for (; d[i] == 0 && i < d.Length; i++) ;
-
-                if (i < d.Length)
+                int i = 1;
+                // first do complement and +1 as long as carry is needed
+                for (; d[i - 1] == 0 && i < d.Length; i++)
                 {
                     d[i] = ~d[i] + 1;
-                    i++;
                 }
-
+                // now ones complement is sufficient
                 for (; i < d.Length; i++)
                 {
                     d[i] = ~d[i];
