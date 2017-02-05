@@ -240,5 +240,18 @@ namespace System.Collections.Immutable
 
             return r;
         }
+
+        // TODO: Inefficient resize at end.
+        internal T[] ToArray()
+        {
+            var builder = new ArrayBuilder<T>();
+
+            for (ImmutableStack<T> stack = this; !stack.IsEmpty; stack = stack.Pop())
+            {
+                builder.Add(stack.Peek());
+            }
+
+            return builder.ToArray();
+        }
     }
 }

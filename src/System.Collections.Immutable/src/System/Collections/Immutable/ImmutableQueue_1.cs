@@ -39,23 +39,22 @@ namespace System.Collections.Immutable
         private readonly ImmutableStack<T> _forwards;
 
         /// <summary>
-        /// Backing field for the <see cref="BackwardsReversed"/> property.
+        /// The cached result of <see cref="Dequeue()"/>, or <c>null</c> if it was not called yet.
         /// </summary>
-        private ImmutableStack<T> _backwardsReversed;
+        private ImmutableQueue<T> _dequeue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImmutableQueue{T}"/> class.
         /// </summary>
-        /// <param name="forward">The forward stack.</param>
-        /// <param name="backward">The backward stack.</param>
-        private ImmutableQueue(ImmutableStack<T> forward, ImmutableStack<T> backward)
+        /// <param name="forwards">The forward stack.</param>
+        /// <param name="backwards">The backward stack.</param>
+        private ImmutableQueue(ImmutableStack<T> forwards, ImmutableStack<T> backwards)
         {
-            Requires.NotNull(forward, nameof(forward));
-            Requires.NotNull(backward, nameof(backward));
+            Debug.Assert(forwards != null);
+            Debug.Assert(backwards != null);
 
-            _forwards = forward;
-            _backwards = backward;
-            _backwardsReversed = null;
+            _forwards = forwards;
+            _backwards = backwards;
         }
 
         /// <summary>
@@ -102,27 +101,6 @@ namespace System.Collections.Immutable
         }
 
         /// <summary>
-        /// Gets the reversed <see cref="_backwards"/> stack.
-        /// </summary>
-        private ImmutableStack<T> BackwardsReversed
-        {
-            get
-            {
-                Contract.Ensures(Contract.Result<ImmutableStack<T>>() != null);
-
-                // Although this is a lazy-init pattern, no lock is required because
-                // this instance is immutable otherwise, and a double-assignment from multiple
-                // threads is harmless.
-                if (_backwardsReversed == null)
-                {
-                    _backwardsReversed = _backwards.Reverse();
-                }
-
-                return _backwardsReversed;
-            }
-        }
-
-        /// <summary>
         /// Gets the element at the front of the queue.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the queue is empty.</exception>
@@ -131,7 +109,7 @@ namespace System.Collections.Immutable
         {
             if (this.IsEmpty)
             {
-                throw new InvalidOperationException(SR.InvalidEmptyOperation);
+                ThrowInvalidEmptyOperation();
             }
 
             return _forwards.Peek();
@@ -151,7 +129,7 @@ namespace System.Collections.Immutable
 
             if (this.IsEmpty)
             {
-                return new ImmutableQueue<T>(ImmutableStack<T>.Empty.Push(value), ImmutableStack<T>.Empty);
+                return new ImmutableQueue<T>(ImmutableStack.Create(value), ImmutableStack<T>.Empty);
             }
             else
             {
@@ -182,22 +160,36 @@ namespace System.Collections.Immutable
         {
             if (this.IsEmpty)
             {
-                throw new InvalidOperationException(SR.InvalidEmptyOperation);
+                ThrowInvalidEmptyOperation();
             }
+
+            return _dequeue ?? this.CreateDequeue();
+        }
+
+        /// <summary>
+        /// Creates and caches the result of <see cref="Dequeue()"/>.
+        /// </summary>
+        private ImmutableQueue<T> CreateDequeue()
+        {
+            Debug.Assert(!this.IsEmpty);
+            Debug.Assert(_dequeue == null);
 
             ImmutableStack<T> f = _forwards.Pop();
             if (!f.IsEmpty)
             {
-                return new ImmutableQueue<T>(f, _backwards);
+                _dequeue = new ImmutableQueue<T>(f, _backwards);
             }
             else if (_backwards.IsEmpty)
             {
-                return ImmutableQueue<T>.Empty;
+                _dequeue = ImmutableQueue<T>.Empty;
             }
             else
             {
-                return new ImmutableQueue<T>(this.BackwardsReversed, ImmutableStack<T>.Empty);
+                _dequeue = new ImmutableQueue<T>(_backwards.Reverse(), ImmutableStack<T>.Empty);
             }
+
+            Debug.Assert(_dequeue != null);
+            return _dequeue;
         }
 
         /// <summary>
@@ -211,7 +203,7 @@ namespace System.Collections.Immutable
         public ImmutableQueue<T> Dequeue(out T value)
         {
             value = this.Peek();
-            return this.Dequeue();
+            return _dequeue ?? this.CreateDequeue();
         }
 
         /// <summary>
@@ -259,6 +251,14 @@ namespace System.Collections.Immutable
         IEnumerator IEnumerable.GetEnumerator()
         {
             return new EnumeratorObject(this);
+        }
+
+        /// <summary>
+        /// Throws an <see cref="InvalidOperationException"/> due to an empty queue.
+        /// </summary>
+        private static void ThrowInvalidEmptyOperation()
+        {
+            throw new InvalidOperationException(SR.InvalidEmptyOperation);
         }
     }
 }

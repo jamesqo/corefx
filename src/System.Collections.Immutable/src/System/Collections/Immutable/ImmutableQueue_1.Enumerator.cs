@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace System.Collections.Immutable
 {
@@ -25,11 +26,8 @@ namespace System.Collections.Immutable
             /// </summary>
             private ImmutableStack<T> _remainingForwardsStack;
 
-            /// <summary>
-            /// The remaining backwards stack of the queue being enumerated.
-            /// Its order is reversed when the field is first initialized.
-            /// </summary>
-            private ImmutableStack<T> _remainingBackwardsStack;
+            private T[] _backwardsArray;
+            private int _backwardsIndex;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Enumerator"/> struct.
@@ -37,11 +35,13 @@ namespace System.Collections.Immutable
             /// <param name="queue">The queue to enumerate.</param>
             internal Enumerator(ImmutableQueue<T> queue)
             {
+                Debug.Assert(queue != null);
                 _originalQueue = queue;
 
-                // The first call to MoveNext will initialize these.
+                // MoveNext will initialize these when it needs to.
                 _remainingForwardsStack = null;
-                _remainingBackwardsStack = null;
+                _backwardsArray = null;
+                _backwardsIndex = -2;
             }
 
             /// <summary>
@@ -61,9 +61,9 @@ namespace System.Collections.Immutable
                     {
                         return _remainingForwardsStack.Peek();
                     }
-                    else if (!_remainingBackwardsStack.IsEmpty)
+                    else if (_backwardsIndex != -1)
                     {
-                        return _remainingBackwardsStack.Peek();
+                        return _backwardsArray[_backwardsIndex];
                     }
                     else
                     {
@@ -84,18 +84,26 @@ namespace System.Collections.Immutable
                     // This is the initial step.
                     // Empty queues have no forwards or backwards 
                     _remainingForwardsStack = _originalQueue._forwards;
-                    _remainingBackwardsStack = _originalQueue.BackwardsReversed;
                 }
                 else if (!_remainingForwardsStack.IsEmpty)
                 {
                     _remainingForwardsStack = _remainingForwardsStack.Pop();
                 }
-                else if (!_remainingBackwardsStack.IsEmpty)
+                else
                 {
-                    _remainingBackwardsStack = _remainingBackwardsStack.Pop();
+                    if (_backwardsArray == null)
+                    {
+                        _backwardsArray = _originalQueue._backwards.ToArray();
+                        _backwardsIndex = _backwardsArray.Length + 1;
+                    }
+                    
+                    if (_backwardsIndex != -1)
+                    {
+                        _backwardsIndex--;
+                    }
                 }
 
-                return !_remainingForwardsStack.IsEmpty || !_remainingBackwardsStack.IsEmpty;
+                return !_remainingForwardsStack.IsEmpty || _backwardsIndex != -1;
             }
         }
 
@@ -114,11 +122,8 @@ namespace System.Collections.Immutable
             /// </summary>
             private ImmutableStack<T> _remainingForwardsStack;
 
-            /// <summary>
-            /// The remaining backwards stack of the queue being enumerated.
-            /// Its order is reversed when the field is first initialized.
-            /// </summary>
-            private ImmutableStack<T> _remainingBackwardsStack;
+            private T[] _backwardsArray;
+            private int _backwardsIndex;
 
             /// <summary>
             /// A value indicating whether this enumerator has been disposed.
@@ -131,7 +136,9 @@ namespace System.Collections.Immutable
             /// <param name="queue">The queue to enumerate.</param>
             internal EnumeratorObject(ImmutableQueue<T> queue)
             {
+                Debug.Assert(queue != null);
                 _originalQueue = queue;
+                _backwardsIndex = -2;
             }
 
             /// <summary>
@@ -152,9 +159,9 @@ namespace System.Collections.Immutable
                     {
                         return _remainingForwardsStack.Peek();
                     }
-                    else if (!_remainingBackwardsStack.IsEmpty)
+                    else if (_backwardsIndex != -1)
                     {
-                        return _remainingBackwardsStack.Peek();
+                        return _backwardsArray[_backwardsIndex];
                     }
                     else
                     {
@@ -184,18 +191,26 @@ namespace System.Collections.Immutable
                     // This is the initial step.
                     // Empty queues have no forwards or backwards 
                     _remainingForwardsStack = _originalQueue._forwards;
-                    _remainingBackwardsStack = _originalQueue.BackwardsReversed;
                 }
                 else if (!_remainingForwardsStack.IsEmpty)
                 {
                     _remainingForwardsStack = _remainingForwardsStack.Pop();
                 }
-                else if (!_remainingBackwardsStack.IsEmpty)
+                else
                 {
-                    _remainingBackwardsStack = _remainingBackwardsStack.Pop();
+                    if (_backwardsArray == null)
+                    {
+                        _backwardsArray = _originalQueue._backwards.ToArray();
+                        _backwardsIndex = _backwardsArray.Length + 1;
+                    }
+                    
+                    if (_backwardsIndex != -1)
+                    {
+                        _backwardsIndex--;
+                    }
                 }
 
-                return !_remainingForwardsStack.IsEmpty || !_remainingBackwardsStack.IsEmpty;
+                return !_remainingForwardsStack.IsEmpty || _backwardsIndex != -1;
             }
 
             /// <summary>
@@ -204,8 +219,9 @@ namespace System.Collections.Immutable
             public void Reset()
             {
                 this.ThrowIfDisposed();
-                _remainingBackwardsStack = null;
                 _remainingForwardsStack = null;
+                _backwardsArray = null;
+                _backwardsIndex = -2;
             }
 
             /// <summary>
