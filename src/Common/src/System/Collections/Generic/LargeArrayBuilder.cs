@@ -4,6 +4,7 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using static System.Runtime.CompilerServices.Unsafe;
 
 namespace System.Collections.Generic
 {
@@ -150,8 +151,13 @@ namespace System.Collections.Generic
                         destination = _current;
                         index = _index; // May have been reset to 0
                     }
-
-                    destination[index++] = enumerator.Current;
+                    
+                    unsafe
+                    {
+                        Write(AsPointer(ref destination[index]), enumerator.Current);
+                    }
+                    
+                    index++;
                 }
 
                 // Final update to _count and _index.
