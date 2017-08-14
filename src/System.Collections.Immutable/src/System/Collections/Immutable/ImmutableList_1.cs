@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
@@ -15,7 +14,7 @@ namespace System.Collections.Immutable
     /// </summary>
     /// <typeparam name="T">The type of elements in the set.</typeparam>
     [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(ImmutableListDebuggerProxy<>))]
+    [DebuggerTypeProxy(typeof(ImmutableEnumerableDebuggerProxy<>))]
     public sealed partial class ImmutableList<T> : IImmutableList<T>, IList<T>, IList, IOrderedCollection<T>, IImmutableListQueries<T>, IStrongEnumerable<T, ImmutableList<T>.Enumerator>
     {
         /// <summary>
@@ -32,10 +31,7 @@ namespace System.Collections.Immutable
         /// <summary>
         /// Initializes a new instance of the <see cref="ImmutableList{T}"/> class.
         /// </summary>
-        internal ImmutableList()
-        {
-            _root = Node.EmptyNode;
-        }
+        internal ImmutableList() => _root = Node.EmptyNode;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImmutableList{T}"/> class.
@@ -52,12 +48,7 @@ namespace System.Collections.Immutable
         /// <summary>
         /// See the <see cref="IImmutableList{T}"/> interface.
         /// </summary>
-        public ImmutableList<T> Clear()
-        {
-            Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
-            Contract.Ensures(Contract.Result<ImmutableList<T>>().IsEmpty);
-            return Empty;
-        }
+        public ImmutableList<T> Clear() => Empty;
 
         /// <summary>
         /// Searches the entire sorted <see cref="ImmutableList{T}"/> for an element
@@ -75,7 +66,7 @@ namespace System.Collections.Immutable
         /// find an implementation of the <see cref="IComparable{T}"/> generic interface or
         /// the <see cref="IComparable"/> interface for type <typeparamref name="T"/>.
         /// </exception>
-        public int BinarySearch(T item) => this.BinarySearch(item, comparer: null);
+        public int BinarySearch(T item) => this.BinarySearch(item, null);
 
         /// <summary>
         ///  Searches the entire sorted <see cref="ImmutableList{T}"/> for an element
@@ -161,8 +152,10 @@ namespace System.Collections.Immutable
         /// <summary>
         /// See the <see cref="ICollection"/> interface.
         /// </summary>
+        /// <devremarks>
+        /// This type is immutable, so it is always thread-safe.
+        /// </devremarks>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        // This is immutable, so it is always thread-safe.
         bool ICollection.IsSynchronized => true;
 
         #endregion
@@ -230,7 +223,7 @@ namespace System.Collections.Immutable
             Contract.Ensures(Contract.Result<ImmutableList<T>>().Count >= this.Count);
 
             // Some optimizations may apply if we're an empty list.
-            return this.IsEmpty ? CreateRange(items) : Wrap(_root.AddRange(items));
+            return this.IsEmpty ? CreateRange(items) : this.WrapOrThis(_root.AddRange(items));
         }
 
         /// <summary>
@@ -254,14 +247,14 @@ namespace System.Collections.Immutable
             Requires.Range(index >= 0 && index <= this.Count, nameof(index));
             Requires.NotNull(items, nameof(items));
             Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
-            return this.IsEmpty ? CreateRange(items) : Wrap(_root.InsertRange(index, items));
+            return this.IsEmpty ? CreateRange(items) : this.WrapOrThis(_root.InsertRange(index, items));
         }
 
         /// <summary>
         /// See the <see cref="IImmutableList{T}"/> interface.
         /// </summary>
         [Pure]
-        public ImmutableList<T> Remove(T value) => this.Remove(value, equalityComparer: null);
+        public ImmutableList<T> Remove(T value) => this.Remove(value, null);
 
         /// <summary>
         /// See the <see cref="IImmutableList{T}"/> interface.
@@ -305,7 +298,7 @@ namespace System.Collections.Immutable
         /// A new list with the elements removed.
         /// </returns>
         [Pure]
-        public ImmutableList<T> RemoveRange(IEnumerable<T> items) => RemoveRange(items, equalityComparer: null);
+        public ImmutableList<T> RemoveRange(IEnumerable<T> items) => RemoveRange(items, null);
 
         /// <summary>
         /// Removes the specified values from this list.
@@ -388,7 +381,7 @@ namespace System.Collections.Immutable
         /// See the <see cref="IImmutableList{T}"/> interface.
         /// </summary>
         [Pure]
-        public ImmutableList<T> Replace(T oldValue, T newValue) => Replace(oldValue, newValue, equalityComparer: null);
+        public ImmutableList<T> Replace(T oldValue, T newValue) => Replace(oldValue, newValue, null);
 
         /// <summary>
         /// See the <see cref="IImmutableList{T}"/> interface.
@@ -816,7 +809,7 @@ namespace System.Collections.Immutable
         /// <summary>
         /// See the <see cref="IImmutableList{T}"/> interface.
         /// </summary>
-        public int IndexOf(T value) => this.IndexOf(value, equalityComparer: null);
+        public int IndexOf(T value) => this.IndexOf(value, null);
 
         /// <summary>
         /// See the <see cref="IImmutableList{T}"/> interface.
@@ -1191,8 +1184,7 @@ namespace System.Collections.Immutable
         {
             // If the items being added actually come from an ImmutableList<T>
             // then there is no value in reconstructing it.
-            ImmutableList<T> other;
-            if (TryCastToImmutableList(items, out other))
+            if (TryCastToImmutableList(items, out ImmutableList<T> other))
             {
                 return other;
             }
@@ -1204,7 +1196,7 @@ namespace System.Collections.Immutable
             // index into that sequence like a list, so the one possible piece of 
             // garbage produced is a temporary array to store the list while
             // we build the tree.
-            return CreateRange(list: items.AsOrderedCollection());
+            return CreateFromOrderedCollection(items.AsOrderedCollection());
         }
 
         /// <summary>
@@ -1212,7 +1204,7 @@ namespace System.Collections.Immutable
         /// </summary>
         /// <param name="list">The collection of elements from which to create the list.</param>
         /// <returns>The immutable list.</returns>
-        internal static ImmutableList<T> CreateRange(IOrderedCollection<T> list)
+        internal static ImmutableList<T> CreateFromOrderedCollection(IOrderedCollection<T> list)
         {
             Debug.Assert(!(list is ImmutableList<T> || list is Builder));
 

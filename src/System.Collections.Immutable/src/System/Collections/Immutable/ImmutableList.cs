@@ -45,7 +45,8 @@ namespace System.Collections.Immutable
         /// <param name="items">The items to prepopulate.</param>
         /// <returns>The new immutable collection.</returns>
         [Pure]
-        public static ImmutableList<T> Create<T>(params T[] items) => ImmutableList<T>.CreateRange(list: items.AsOrderedCollection());
+        public static ImmutableList<T> Create<T>(params T[] items) =>
+            ImmutableList<T>.CreateFromOrderedCollection(items.AsOrderedCollection());
 
         /// <summary>
         /// Creates a new immutable list builder.

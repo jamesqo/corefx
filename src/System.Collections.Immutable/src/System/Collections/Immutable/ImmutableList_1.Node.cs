@@ -416,17 +416,27 @@ namespace System.Collections.Immutable
                 Contract.Ensures(Contract.Result<Node>() != null);
 
                 var result = this;
-                int index = 0;
-                foreach (var item in this)
+                var enumerator = new Enumerator(result);
+                try
                 {
-                    if (match(item))
+                    var startIndex = 0;
+                    while (enumerator.MoveNext())
                     {
-                        result = result.RemoveAt(index);
+                        if (match(enumerator.Current))
+                        {
+                            result = result.RemoveAt(startIndex);
+                            enumerator.Dispose();
+                            enumerator = new Enumerator(result, startIndex: startIndex);
+                        }
+                        else
+                        {
+                            startIndex++;
+                        }
                     }
-                    else
-                    {
-                        index++;
-                    }
+                }
+                finally
+                {
+                    enumerator.Dispose();
                 }
 
                 return result;
@@ -1309,7 +1319,7 @@ namespace System.Collections.Immutable
             /// <returns>
             /// <c>true</c> if this tree is balanced; otherwise, <c>false</c>.
             /// </returns>
-            private bool IsBalanced => (uint)(this.BalanceFactor + 1) <= 2;
+            private bool IsBalanced => unchecked((uint)(this.BalanceFactor + 1)) <= 2;
 
             /// <summary>
             /// Balances the left side of this tree by rotating this tree rightwards.
