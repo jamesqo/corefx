@@ -216,7 +216,7 @@ namespace System.Collections.Immutable
         {
             Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
             Contract.Ensures(Contract.Result<ImmutableList<T>>().Count == this.Count + 1);
-            return WrapNew(_root.Add(value));
+            return Wrap(_root.Add(value));
         }
 
         /// <summary>
@@ -230,7 +230,7 @@ namespace System.Collections.Immutable
             Contract.Ensures(Contract.Result<ImmutableList<T>>().Count >= this.Count);
 
             // Some optimizations may apply if we're an empty list.
-            return this.IsEmpty ? CreateRange(items) : WrapNew(_root.AddRange(items));
+            return this.IsEmpty ? CreateRange(items) : Wrap(_root.AddRange(items));
         }
 
         /// <summary>
@@ -242,7 +242,7 @@ namespace System.Collections.Immutable
             Requires.Range(index >= 0 && index <= this.Count, nameof(index));
             Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
             Contract.Ensures(Contract.Result<ImmutableList<T>>().Count == this.Count + 1);
-            return WrapNew(_root.Insert(index, item));
+            return Wrap(_root.Insert(index, item));
         }
 
         /// <summary>
@@ -254,7 +254,7 @@ namespace System.Collections.Immutable
             Requires.Range(index >= 0 && index <= this.Count, nameof(index));
             Requires.NotNull(items, nameof(items));
             Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
-            return this.IsEmpty ? CreateRange(items) : WrapNew(_root.InsertRange(index, items));
+            return this.IsEmpty ? CreateRange(items) : Wrap(_root.InsertRange(index, items));
         }
 
         /// <summary>
@@ -294,7 +294,7 @@ namespace System.Collections.Immutable
                 result = result.RemoveAt(index);
             }
 
-            return this.Wrap(result);
+            return this.WrapOrThis(result);
         }
 
         /// <summary>
@@ -343,7 +343,7 @@ namespace System.Collections.Immutable
                 }
             }
 
-            return this.Wrap(result);
+            return this.WrapOrThis(result);
         }
 
         /// <summary>
@@ -355,7 +355,7 @@ namespace System.Collections.Immutable
             Requires.Range(index >= 0 && index < this.Count, nameof(index));
             Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
             Contract.Ensures(Contract.Result<ImmutableList<T>>().Count == this.Count - 1);
-            return WrapNewOrEmpty(_root.RemoveAt(index));
+            return WrapOrEmpty(_root.RemoveAt(index));
         }
 
         /// <summary>
@@ -375,14 +375,14 @@ namespace System.Collections.Immutable
             Requires.NotNull(match, nameof(match));
             Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
 
-            return this.Wrap(_root.RemoveAll(match));
+            return this.WrapOrThis(_root.RemoveAll(match));
         }
 
         /// <summary>
         /// See the <see cref="IImmutableList{T}"/> interface.
         /// </summary>
         [Pure]
-        public ImmutableList<T> SetItem(int index, T value) => WrapNew(_root.ReplaceAt(index, value));
+        public ImmutableList<T> SetItem(int index, T value) => Wrap(_root.ReplaceAt(index, value));
 
         /// <summary>
         /// See the <see cref="IImmutableList{T}"/> interface.
@@ -413,7 +413,7 @@ namespace System.Collections.Immutable
         /// </summary>
         /// <returns>The reversed list.</returns>
         [Pure]
-        public ImmutableList<T> Reverse() => this.Wrap(_root.Reverse());
+        public ImmutableList<T> Reverse() => this.WrapOrThis(_root.Reverse());
 
         /// <summary>
         /// Reverses the order of the elements in the specified range.
@@ -422,14 +422,14 @@ namespace System.Collections.Immutable
         /// <param name="count">The number of elements in the range to reverse.</param> 
         /// <returns>The reversed list.</returns>
         [Pure]
-        public ImmutableList<T> Reverse(int index, int count) => this.Wrap(_root.Reverse(index, count));
+        public ImmutableList<T> Reverse(int index, int count) => this.WrapOrThis(_root.Reverse(index, count));
 
         /// <summary>
         /// Sorts the elements in the entire <see cref="ImmutableList{T}"/> using
         /// the default comparer.
         /// </summary>
         [Pure]
-        public ImmutableList<T> Sort() => this.Wrap(_root.Sort());
+        public ImmutableList<T> Sort() => this.WrapOrThis(_root.Sort());
 
         /// <summary>
         /// Sorts the elements in the entire <see cref="ImmutableList{T}"/> using
@@ -445,7 +445,7 @@ namespace System.Collections.Immutable
         {
             Requires.NotNull(comparison, nameof(comparison));
             Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
-            return this.Wrap(_root.Sort(comparison));
+            return this.WrapOrThis(_root.Sort(comparison));
         }
 
         /// <summary>
@@ -458,7 +458,7 @@ namespace System.Collections.Immutable
         /// </param>
         /// <returns>The sorted list.</returns>
         [Pure]
-        public ImmutableList<T> Sort(IComparer<T> comparer) => this.Wrap(_root.Sort(comparer));
+        public ImmutableList<T> Sort(IComparer<T> comparer) => this.WrapOrThis(_root.Sort(comparer));
 
         /// <summary>
         /// Sorts the elements in a range of elements in <see cref="ImmutableList{T}"/>
@@ -483,7 +483,7 @@ namespace System.Collections.Immutable
             Requires.Range(index + count <= this.Count, nameof(count));
             Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
 
-            return this.Wrap(_root.Sort(index, count, comparer));
+            return this.WrapOrThis(_root.Sort(index, count, comparer));
         }
 
         #endregion
@@ -565,7 +565,7 @@ namespace System.Collections.Immutable
             Requires.Range(index >= 0, nameof(index));
             Requires.Range(count >= 0, nameof(count));
             Requires.Range(index + count <= this.Count, nameof(count));
-            return WrapNewOrEmpty(Node.NodeTreeFromList(this, index, count));
+            return WrapOrEmpty(Node.NodeTreeFromList(this, index, count));
         }
 
         /// <summary>
@@ -586,7 +586,7 @@ namespace System.Collections.Immutable
         public ImmutableList<TOutput> ConvertAll<TOutput>(Func<T, TOutput> converter)
         {
             Requires.NotNull(converter, nameof(converter));
-            return ImmutableList<TOutput>.WrapNewOrEmpty(_root.ConvertAll(converter));
+            return ImmutableList<TOutput>.WrapOrEmpty(_root.ConvertAll(converter));
         }
 
         /// <summary>
@@ -936,20 +936,14 @@ namespace System.Collections.Immutable
         /// <param name="index">The index.</param>
         /// <param name="item">The item.</param>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        void IList<T>.Insert(int index, T item)
-        {
-            throw new NotSupportedException();
-        }
+        void IList<T>.Insert(int index, T item) => throw new NotSupportedException();
 
         /// <summary>
         /// Removes the value at the specified index.
         /// </summary>
         /// <param name="index">The index.</param>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        void IList<T>.RemoveAt(int index)
-        {
-            throw new NotSupportedException();
-        }
+        void IList<T>.RemoveAt(int index) => throw new NotSupportedException();
 
         /// <summary>
         /// Gets or sets the value at the specified index.
@@ -958,8 +952,8 @@ namespace System.Collections.Immutable
         /// <exception cref="NotSupportedException">Always thrown from the setter.</exception>
         T IList<T>.this[int index]
         {
-            get { return this[index]; }
-            set { throw new NotSupportedException(); }
+            get => this[index];
+            set => throw new NotSupportedException();
         }
 
         #endregion
@@ -971,19 +965,13 @@ namespace System.Collections.Immutable
         /// </summary>
         /// <param name="item">The item.</param>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        void ICollection<T>.Add(T item)
-        {
-            throw new NotSupportedException();
-        }
+        void ICollection<T>.Add(T item) => throw new NotSupportedException();
 
         /// <summary>
         /// Clears this instance.
         /// </summary>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        void ICollection<T>.Clear()
-        {
-            throw new NotSupportedException();
-        }
+        void ICollection<T>.Clear() => throw new NotSupportedException();
 
         /// <summary>
         /// Gets a value indicating whether the <see cref="ICollection{T}"/> is read-only.
@@ -998,10 +986,7 @@ namespace System.Collections.Immutable
         /// <param name="item">The item.</param>
         /// <returns>Nothing. An exception is always thrown.</returns>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        bool ICollection<T>.Remove(T item)
-        {
-            throw new NotSupportedException();
-        }
+        bool ICollection<T>.Remove(T item) => throw new NotSupportedException();
 
         #endregion
 
@@ -1024,29 +1009,20 @@ namespace System.Collections.Immutable
         /// Nothing. An exception is always thrown.
         /// </returns>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        int IList.Add(object value)
-        {
-            throw new NotSupportedException();
-        }
+        int IList.Add(object value) => throw new NotSupportedException();
 
         /// <summary>
         /// Removes the <see cref="IList"/> item at the specified index.
         /// </summary>
         /// <param name="index">The zero-based index of the item to remove.</param>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        void IList.RemoveAt(int index)
-        {
-            throw new NotSupportedException();
-        }
+        void IList.RemoveAt(int index) => throw new NotSupportedException();
 
         /// <summary>
         /// Clears this instance.
         /// </summary>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        void IList.Clear()
-        {
-            throw new NotSupportedException();
-        }
+        void IList.Clear() => throw new NotSupportedException();
 
         /// <summary>
         /// Determines whether the <see cref="IList"/> contains a specific value.
@@ -1072,10 +1048,7 @@ namespace System.Collections.Immutable
         /// <param name="index">The zero-based index at which <paramref name="value"/> should be inserted.</param>
         /// <param name="value">The object to insert into the <see cref="IList"/>.</param>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        void IList.Insert(int index, object value)
-        {
-            throw new NotSupportedException();
-        }
+        void IList.Insert(int index, object value) => throw new NotSupportedException();
 
         /// <summary>
         /// Gets a value indicating whether the <see cref="IList"/> has a fixed size.
@@ -1095,10 +1068,7 @@ namespace System.Collections.Immutable
         /// </summary>
         /// <param name="value">The object to remove from the <see cref="IList"/>.</param>
         /// <exception cref="NotSupportedException">Always thrown.</exception>
-        void IList.Remove(object value)
-        {
-            throw new NotSupportedException();
-        }
+        void IList.Remove(object value) => throw new NotSupportedException();
 
         /// <summary>
         /// Gets or sets the <see cref="System.Object"/> at the specified index.
@@ -1112,8 +1082,8 @@ namespace System.Collections.Immutable
         /// <exception cref="NotSupportedException">Always thrown from the setter.</exception>
         object IList.this[int index]
         {
-            get { return this[index]; }
-            set { throw new NotSupportedException(); }
+            get => this[index];
+            set => throw new NotSupportedException();
         }
 
         #endregion
@@ -1184,7 +1154,7 @@ namespace System.Collections.Immutable
         /// <param name="root">The root node to wrap.</param>
         /// <returns>A list that wraps the new tree.</returns>
         [Pure]
-        private ImmutableList<T> Wrap(Node root) => root == _root ? this : WrapNewOrEmpty(root);
+        private ImmutableList<T> WrapOrThis(Node root) => root == _root ? this : WrapOrEmpty(root);
 
         /// <summary>
         /// Wraps a new or empty root node with a list.
@@ -1192,21 +1162,25 @@ namespace System.Collections.Immutable
         /// <param name="root">The root node to wrap.</param>
         /// <returns>A list that wraps the new tree.</returns>
         [Pure]
-        private static ImmutableList<T> WrapNewOrEmpty(Node root) => root.IsEmpty ? Empty : WrapNew(root);
+        private static ImmutableList<T> WrapOrEmpty(Node root) => root.IsEmpty ? Empty : Wrap(root);
 
         /// <summary>
         /// Wraps a new, non-empty root node with a list.
         /// </summary>
         /// <param name="root">The root node to wrap.</param>
         /// <returns>A list that wraps the new tree.</returns>
-        private static ImmutableList<T> WrapNew(Node root) => new ImmutableList<T>(root);
+        private static ImmutableList<T> Wrap(Node root)
+        {
+            Debug.Assert(!root.IsEmpty);
+            return new ImmutableList<T>(root);
+        }
 
         /// <summary>
         /// Creates an immutable list from a single element.
         /// </summary>
         /// <param name="item">The element from which to create the list.</param>
         /// <returns>The immutable list.</returns>
-        internal static ImmutableList<T> Create(T item) => WrapNew(Node.CreateLeaf(item));
+        internal static ImmutableList<T> Create(T item) => Wrap(Node.CreateLeaf(item));
 
         /// <summary>
         /// Creates an immutable list from a sequence of elements.
@@ -1243,7 +1217,7 @@ namespace System.Collections.Immutable
             Debug.Assert(!(list is ImmutableList<T> || list is Builder));
 
             int count = list.Count; // Cache one interface call.
-            return count == 0 ? Empty : WrapNew(Node.NodeTreeFromList(list, 0, count));
+            return count == 0 ? Empty : Wrap(Node.NodeTreeFromList(list, 0, count));
         }
     }
 }
