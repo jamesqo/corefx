@@ -356,51 +356,47 @@ namespace System.Collections.Immutable
             internal Node RemoveAt(int index)
             {
                 Requires.Range(index >= 0 && index < this.Count, nameof(index));
+                Debug.Assert(!this.IsEmpty);
 
-                Node result = this;
                 if (index == _left._count)
                 {
                     // We have a match. If this is a leaf, just remove it 
                     // by returning Empty.  If we have only one child,
                     // replace the node with the child.
-                    if (_right.IsEmpty && _left.IsEmpty)
+                    if (_right.IsEmpty)
                     {
-                        result = EmptyNode;
+                        return _left;
                     }
-                    else if (_right.IsEmpty && !_left.IsEmpty)
-                    {
-                        result = _left;
-                    }
-                    else if (!_right.IsEmpty && _left.IsEmpty)
-                    {
-                        result = _right;
-                    }
-                    else
-                    {
-                        // We have two children. Remove the next-highest node and replace
-                        // this node with it.
-                        var successor = _right;
-                        while (!successor._left.IsEmpty)
-                        {
-                            successor = successor._left;
-                        }
 
-                        var newRight = _right.RemoveAt(0);
-                        result = successor.MutateBoth(left: _left, right: newRight);
+                    if (_left.IsEmpty)
+                    {
+                        return _right;
                     }
+                    
+                    // We have two children. Find our in-order successor, replace our key
+                    // with its key, and remove it from our right subtree.
+                    Node successor = _right;
+                    while (!successor._left.IsEmpty)
+                    {
+                        successor = successor._left;
+                    }
+
+                    Node newRight = _right.RemoveAt(0);
+                    Node result = successor.MutateBoth(left: _left, right: newRight);
+                    return result.IsBalanced ? result : result.BalanceLeft();
                 }
                 else if (index < _left._count)
                 {
-                    var newLeft = _left.RemoveAt(index);
-                    result = this.MutateLeft(newLeft);
+                    Node newLeft = _left.RemoveAt(index);
+                    Node result = this.MutateLeft(newLeft);
+                    return result.IsBalanced ? result : result.BalanceRight();
                 }
                 else
                 {
-                    var newRight = _right.RemoveAt(index - _left._count - 1);
-                    result = this.MutateRight(newRight);
+                    Node newRight = _right.RemoveAt(index - _left._count - 1);
+                    Node result = this.MutateRight(newRight);
+                    return result.IsBalanced ? result : result.BalanceLeft();
                 }
-
-                return result.IsEmpty || result.IsBalanced ? result : result.Balance();
             }
 
             /// <summary>
@@ -420,27 +416,17 @@ namespace System.Collections.Immutable
                 Contract.Ensures(Contract.Result<Node>() != null);
 
                 var result = this;
-                var enumerator = new Enumerator(result);
-                try
+                int index = 0;
+                foreach (var item in this)
                 {
-                    var startIndex = 0;
-                    while (enumerator.MoveNext())
+                    if (match(item))
                     {
-                        if (match(enumerator.Current))
-                        {
-                            result = result.RemoveAt(startIndex);
-                            enumerator.Dispose();
-                            enumerator = new Enumerator(result, startIndex: startIndex);
-                        }
-                        else
-                        {
-                            startIndex++;
-                        }
+                        result = result.RemoveAt(index);
                     }
-                }
-                finally
-                {
-                    enumerator.Dispose();
+                    else
+                    {
+                        index++;
+                    }
                 }
 
                 return result;
@@ -516,7 +502,7 @@ namespace System.Collections.Immutable
             /// Sorts the elements in the entire <see cref="ImmutableList{T}"/> using
             /// the default comparer.
             /// </summary>
-            internal Node Sort() => this.Sort(Comparer<T>.Default);
+            internal Node Sort() => this.Sort(comparer: null);
 
             /// <summary>
             /// Sorts the elements in the entire <see cref="ImmutableList{T}"/> using
@@ -780,7 +766,7 @@ namespace System.Collections.Immutable
             internal void CopyTo(T[] array)
             {
                 Requires.NotNull(array, nameof(array));
-                Requires.Argument(array.Length >= this.Count);
+                Requires.Range(array.Length >= this.Count, nameof(array));
 
                 int index = 0;
                 foreach (var element in this)
@@ -805,8 +791,7 @@ namespace System.Collections.Immutable
             {
                 Requires.NotNull(array, nameof(array));
                 Requires.Range(arrayIndex >= 0, nameof(arrayIndex));
-                Requires.Range(arrayIndex <= array.Length, nameof(arrayIndex));
-                Requires.Argument(arrayIndex + this.Count <= array.Length);
+                Requires.Range(array.Length >= arrayIndex + this.Count, nameof(arrayIndex));
 
                 foreach (var element in this)
                 {
@@ -906,6 +891,8 @@ namespace System.Collections.Immutable
             /// </returns>
             internal bool TrueForAll(Predicate<T> match)
             {
+                Requires.NotNull(match, nameof(match));
+
                 foreach (var item in this)
                 {
                     if (!match(item))
@@ -1049,9 +1036,8 @@ namespace System.Collections.Immutable
             /// </returns>
             internal int FindIndex(int startIndex, Predicate<T> match)
             {
-                Requires.Range(startIndex >= 0, nameof(startIndex));
-                Requires.Range(startIndex <= this.Count, nameof(startIndex));
                 Requires.NotNull(match, nameof(match));
+                Requires.Range(startIndex >= 0 && startIndex <= this.Count, nameof(startIndex));
 
                 return this.FindIndex(startIndex, this.Count - startIndex, match);
             }
@@ -1071,10 +1057,10 @@ namespace System.Collections.Immutable
             /// </returns>
             internal int FindIndex(int startIndex, int count, Predicate<T> match)
             {
+                Requires.NotNull(match, nameof(match));
                 Requires.Range(startIndex >= 0, nameof(startIndex));
                 Requires.Range(count >= 0, nameof(count));
-                Requires.Argument(startIndex + count <= this.Count);
-                Requires.NotNull(match, nameof(match));
+                Requires.Range(startIndex + count <= this.Count, nameof(count));
 
                 using (var enumerator = new Enumerator(this, startIndex: startIndex, count: count))
                 {
@@ -1141,12 +1127,7 @@ namespace System.Collections.Immutable
                 Requires.NotNull(match, nameof(match));
                 Contract.Ensures(Contract.Result<int>() >= -1);
 
-                if (this.IsEmpty)
-                {
-                    return -1;
-                }
-
-                return this.FindLastIndex(this.Count - 1, this.Count, match);
+                return this.IsEmpty ? -1 : this.FindLastIndex(this.Count - 1, this.Count, match);
             }
 
             /// <summary>
@@ -1168,12 +1149,7 @@ namespace System.Collections.Immutable
                 Requires.Range(startIndex >= 0, nameof(startIndex));
                 Requires.Range(startIndex == 0 || startIndex < this.Count, nameof(startIndex));
 
-                if (this.IsEmpty)
-                {
-                    return -1;
-                }
-
-                return this.FindLastIndex(startIndex, startIndex + 1, match);
+                return this.IsEmpty ? -1 : this.FindLastIndex(startIndex, startIndex + 1, match);
             }
 
             /// <summary>
@@ -1197,7 +1173,7 @@ namespace System.Collections.Immutable
                 Requires.NotNull(match, nameof(match));
                 Requires.Range(startIndex >= 0, nameof(startIndex));
                 Requires.Range(count <= this.Count, nameof(count));
-                Requires.Argument(startIndex - count + 1 >= 0);
+                Requires.Range(startIndex - count + 1 >= 0, nameof(startIndex));
 
                 using (var enumerator = new Enumerator(this, startIndex: startIndex, count: count, reversed: true))
                 {
@@ -1333,13 +1309,7 @@ namespace System.Collections.Immutable
             /// <returns>
             /// <c>true</c> if this tree is balanced; otherwise, <c>false</c>.
             /// </returns>
-            private bool IsBalanced => unchecked((uint)(this.BalanceFactor + 1)) <= 2;
-
-            /// <summary>
-            /// Balances this tree.
-            /// </summary>
-            /// <returns>A balanced tree.</returns>
-            private Node Balance() => this.IsLeftHeavy ? this.BalanceLeft() : this.BalanceRight();
+            private bool IsBalanced => (uint)(this.BalanceFactor + 1) <= 2;
 
             /// <summary>
             /// Balances the left side of this tree by rotating this tree rightwards.
@@ -1350,7 +1320,9 @@ namespace System.Collections.Immutable
                 Debug.Assert(!this.IsEmpty);
                 Debug.Assert(this.IsLeftHeavy);
 
-                return _left.BalanceFactor > 0 ? this.DoubleRight() : this.RotateRight();
+                Node result = _left.BalanceFactor > 0 ? this.DoubleRight() : this.RotateRight();
+                Debug.Assert(result.IsBalanced);
+                return result;
             }
 
             /// <summary>
@@ -1362,7 +1334,9 @@ namespace System.Collections.Immutable
                 Debug.Assert(!this.IsEmpty);
                 Debug.Assert(this.IsRightHeavy);
 
-                return _right.BalanceFactor < 0 ? this.DoubleLeft() : this.RotateLeft();
+                Node result = _right.BalanceFactor < 0 ? this.DoubleLeft() : this.RotateLeft();
+                Debug.Assert(result.IsBalanced);
+                return result;
             }
 
             /// <summary>
@@ -1378,6 +1352,9 @@ namespace System.Collections.Immutable
                 Node tree = this;
                 while (!tree.IsBalanced)
                 {
+                    Debug.Assert(tree._left.IsEmpty || tree._left.IsBalanced);
+                    Debug.Assert(tree._right.IsEmpty || tree._right.IsBalanced);
+
                     if (tree.IsRightHeavy)
                     {
                         tree = tree.BalanceRight();
@@ -1412,14 +1389,12 @@ namespace System.Collections.Immutable
                 {
                     return new Node(_key, left, right);
                 }
-                else
-                {
-                    _left = left;
-                    _right = right;
-                    _height = ParentHeight(left, right);
-                    _count = ParentCount(left, right);
-                    return this;
-                }
+
+                _left = left;
+                _right = right;
+                _height = ParentHeight(left, right);
+                _count = ParentCount(left, right);
+                return this;
             }
 
             /// <summary>
@@ -1437,13 +1412,11 @@ namespace System.Collections.Immutable
                 {
                     return new Node(_key, left, _right);
                 }
-                else
-                {
-                    _left = left;
-                    _height = ParentHeight(left, _right);
-                    _count = ParentCount(left, _right);
-                    return this;
-                }
+                
+                _left = left;
+                _height = ParentHeight(left, _right);
+                _count = ParentCount(left, _right);
+                return this;
             }
 
             /// <summary>
@@ -1461,13 +1434,11 @@ namespace System.Collections.Immutable
                 {
                     return new Node(_key, _left, right);
                 }
-                else
-                {
-                    _right = right;
-                    _height = ParentHeight(_left, right);
-                    _count = ParentCount(_left, right);
-                    return this;
-                }
+                
+                _right = right;
+                _height = ParentHeight(_left, right);
+                _count = ParentCount(_left, right);
+                return this;
             }
 
             /// <summary>
@@ -1501,11 +1472,9 @@ namespace System.Collections.Immutable
                 {
                     return new Node(key, _left, _right);
                 }
-                else
-                {
-                    _key = key;
-                    return this;
-                }
+                
+                _key = key;
+                return this;
             }
 
             /// <summary>
@@ -1530,7 +1499,7 @@ namespace System.Collections.Immutable
             /// </summary>
             /// <param name="key">The leaf node's key.</param>
             /// <returns>The leaf node.</returns>
-            private static Node CreateLeaf(T key) => new Node(key, left: EmptyNode, right: EmptyNode);
+            internal static Node CreateLeaf(T key) => new Node(key, left: EmptyNode, right: EmptyNode);
         }
     }
 }
