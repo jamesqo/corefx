@@ -334,7 +334,7 @@ namespace System.Collections.Immutable
                 Requires.Range(index >= 0, nameof(index));
                 Requires.Range(count >= 0, nameof(count));
                 Requires.Range(index + count <= this.Count, nameof(count));
-                return ImmutableList<T>.WrapNode(Node.NodeTreeFromList(this, index, count));
+                return ImmutableList<T>.WrapOrEmpty(Node.NodeTreeFromList(this, index, count));
             }
 
             /// <summary>
@@ -355,7 +355,7 @@ namespace System.Collections.Immutable
             public ImmutableList<TOutput> ConvertAll<TOutput>(Func<T, TOutput> converter)
             {
                 Requires.NotNull(converter, nameof(converter));
-                return ImmutableList<TOutput>.WrapNode(_root.ConvertAll(converter));
+                return ImmutableList<TOutput>.WrapOrEmpty(_root.ConvertAll(converter));
             }
 
             /// <summary>
@@ -929,7 +929,7 @@ namespace System.Collections.Immutable
                 // will clone (and unfreeze) the spine of modified nodes until the next time this method is invoked.
                 if (_immutable == null)
                 {
-                    _immutable = ImmutableList<T>.WrapNode(this.Root);
+                    _immutable = ImmutableList<T>.WrapOrEmpty(this.Root);
                 }
 
                 return _immutable;

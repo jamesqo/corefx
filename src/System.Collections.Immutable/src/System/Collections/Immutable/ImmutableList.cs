@@ -27,7 +27,7 @@ namespace System.Collections.Immutable
         /// <param name="item">The item to prepopulate.</param>
         /// <returns>The new immutable collection.</returns>
         [Pure]
-        public static ImmutableList<T> Create<T>(T item) => ImmutableList<T>.Empty.Add(item);
+        public static ImmutableList<T> Create<T>(T item) => ImmutableList<T>.Create(item);
 
         /// <summary>
         /// Creates a new immutable collection prefilled with the specified items.
@@ -36,7 +36,7 @@ namespace System.Collections.Immutable
         /// <param name="items">The items to prepopulate.</param>
         /// <returns>The new immutable collection.</returns>
         [Pure]
-        public static ImmutableList<T> CreateRange<T>(IEnumerable<T> items) => ImmutableList<T>.Empty.AddRange(items);
+        public static ImmutableList<T> CreateRange<T>(IEnumerable<T> items) => ImmutableList<T>.CreateRange(items);
 
         /// <summary>
         /// Creates a new immutable collection prefilled with the specified items.
@@ -45,7 +45,8 @@ namespace System.Collections.Immutable
         /// <param name="items">The items to prepopulate.</param>
         /// <returns>The new immutable collection.</returns>
         [Pure]
-        public static ImmutableList<T> Create<T>(params T[] items) => ImmutableList<T>.Empty.AddRange(items);
+        public static ImmutableList<T> Create<T>(params T[] items) =>
+            ImmutableList<T>.CreateFromOrderedCollection(items.AsOrderedCollection());
 
         /// <summary>
         /// Creates a new immutable list builder.
@@ -62,16 +63,7 @@ namespace System.Collections.Immutable
         /// <param name="source">The sequence to enumerate.</param>
         /// <returns>An immutable list.</returns>
         [Pure]
-        public static ImmutableList<TSource> ToImmutableList<TSource>(this IEnumerable<TSource> source)
-        {
-            var existingList = source as ImmutableList<TSource>;
-            if (existingList != null)
-            {
-                return existingList;
-            }
-
-            return ImmutableList<TSource>.Empty.AddRange(source);
-        }
+        public static ImmutableList<TSource> ToImmutableList<TSource>(this IEnumerable<TSource> source) => ImmutableList<TSource>.CreateRange(source);
 
         /// <summary>
         /// Replaces the first equal element in the list with the specified element.
