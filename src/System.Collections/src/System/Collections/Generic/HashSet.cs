@@ -84,26 +84,24 @@ namespace System.Collections.Generic
 
         public HashSet()
             : this((IEqualityComparer<T>)null)
-        { }
+        {
+        }
 
         public HashSet(IEqualityComparer<T> comparer)
         {
-            if (comparer == null)
-            {
-                comparer = EqualityComparer<T>.Default;
-            }
-
-            _comparer = comparer;
+            _comparer = ComparerHelpers.Normalize(comparer);
             _freeList = -1;
         }
 
         public HashSet(int capacity)
             : this(capacity, null)
-        { }
+        {
+        }
 
         public HashSet(IEnumerable<T> collection)
             : this(collection, null)
-        { }
+        {
+        }
 
         /// <summary>
         /// Implementation Notes:
@@ -261,7 +259,7 @@ namespace System.Collections.Generic
                 // see note at "HashSet" level describing why "- 1" appears in for loop
                 for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = _slots[i].next)
                 {
-                    if (_slots[i].hashCode == hashCode && _comparer.FastEquals(_slots[i].value, item))
+                    if (_slots[i].hashCode == hashCode && ComparerHelpers.Equals(_comparer, _slots[i].value, item))
                     {
                         return true;
                     }
@@ -295,7 +293,7 @@ namespace System.Collections.Generic
                 int last = -1;
                 for (int i = _buckets[bucket] - 1; i >= 0; last = i, i = _slots[i].next)
                 {
-                    if (_slots[i].hashCode == hashCode && _comparer.FastEquals(_slots[i].value, item))
+                    if (_slots[i].hashCode == hashCode && ComparerHelpers.Equals(_comparer, _slots[i].value, item))
                     {
                         if (last < 0)
                         {
@@ -406,7 +404,7 @@ namespace System.Collections.Generic
             }
 
             int capacity = _siInfo.GetInt32(CapacityName);
-            _comparer = (IEqualityComparer<T>)_siInfo.GetValue(ComparerName, typeof(IEqualityComparer<T>));
+            _comparer = ComparerHelpers.Normalize((IEqualityComparer<T>)_siInfo.GetValue(ComparerName, typeof(IEqualityComparer<T>)));
             _freeList = -1;
 
             if (capacity != 0)
@@ -1209,7 +1207,7 @@ namespace System.Collections.Generic
 #endif
             for (int i = _buckets[bucket] - 1; i >= 0; i = _slots[i].next)
             {
-                if (_slots[i].hashCode == hashCode && _comparer.FastEquals(_slots[i].value, value))
+                if (_slots[i].hashCode == hashCode && ComparerHelpers.Equals(_comparer, _slots[i].value, value))
                 {
                     return false;
                 }
@@ -1400,7 +1398,7 @@ namespace System.Collections.Generic
             int hashCode = InternalGetHashCode(item);
             for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = _slots[i].next)
             {
-                if ((_slots[i].hashCode) == hashCode && _comparer.FastEquals(_slots[i].value, item))
+                if ((_slots[i].hashCode) == hashCode && ComparerHelpers.Equals(_comparer, _slots[i].value, item))
                 {
                     return i;
                 }
@@ -1523,7 +1521,7 @@ namespace System.Collections.Generic
             int bucket = hashCode % _buckets.Length;
             for (int i = _buckets[bucket] - 1; i >= 0; i = _slots[i].next)
             {
-                if (_slots[i].hashCode == hashCode && _comparer.FastEquals(_slots[i].value, value))
+                if (_slots[i].hashCode == hashCode && ComparerHelpers.Equals(_comparer, _slots[i].value, value))
                 {
                     location = i;
                     return false; //already present
@@ -1697,7 +1695,7 @@ namespace System.Collections.Generic
                     bool found = false;
                     foreach (T set1Item in set1)
                     {
-                        if (comparer.FastEquals(set2Item, set1Item))
+                        if (ComparerHelpers.Equals(comparer, set2Item, set1Item))
                         {
                             found = true;
                             break;
