@@ -1734,7 +1734,7 @@ namespace System.Collections.Generic
             {
                 return 0;
             }
-            return _comparer.GetHashCode(item) & Lower31BitMask;
+            return ComparerHelpers.GetHashCode(_comparer, item) & Lower31BitMask;
         }
 
         #endregion

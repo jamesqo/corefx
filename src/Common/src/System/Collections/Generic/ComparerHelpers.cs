@@ -20,17 +20,27 @@ namespace System.Collections.Generic
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Equals<T>(IEqualityComparer<T> comparer, T x, T y)
         {
-            if (IsWellKnownType<T>())
+            if (IsWellKnownType<T>() && comparer == null)
             {
-                Debug.Assert(comparer != EqualityComparer<T>.Default);
-                if (comparer == null)
-                {
-                    return DefaultEqualsWellKnown(x, y);
-                }
+                return DefaultEqualsWellKnown(x, y);
             }
 
             Debug.Assert(comparer != null);
             return comparer.Equals(x, y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool GetHashCode<T>(IEqualityComparer<T> comparer, T obj)
+        {
+            Debug.Assert(obj != null);
+
+            if (IsWellKnownType<T>() && comparer == null)
+            {
+                return obj.GetHashCode();
+            }
+
+            Debug.Assert(comparer != null);
+            return comparer.GetHashCode(obj);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
