@@ -15,10 +15,7 @@ namespace System.Linq
 
         public static bool Contains<TSource>(this IEnumerable<TSource> source, TSource value, IEqualityComparer<TSource> comparer)
         {
-            if (comparer == null)
-            {
-                comparer = EqualityComparer<TSource>.Default;
-            }
+            comparer = ComparerHelpers.Normalize(comparer);
 
             if (source == null)
             {
@@ -27,7 +24,7 @@ namespace System.Linq
 
             foreach (TSource element in source)
             {
-                if (comparer.FastEquals(element, value))
+                if (ComparerHelpers.Equals(comparer, element, value))
                 {
                     return true;
                 }

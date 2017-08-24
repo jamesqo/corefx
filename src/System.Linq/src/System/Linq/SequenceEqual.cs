@@ -13,10 +13,7 @@ namespace System.Linq
 
         public static bool SequenceEqual<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second, IEqualityComparer<TSource> comparer)
         {
-            if (comparer == null)
-            {
-                comparer = EqualityComparer<TSource>.Default;
-            }
+            comparer = ComparerHelpers.Normalize(comaprer);
 
             if (first == null)
             {
@@ -38,7 +35,7 @@ namespace System.Linq
             {
                 while (e1.MoveNext())
                 {
-                    if (!(e2.MoveNext() && comparer.FastEquals(e1.Current, e2.Current)))
+                    if (!(e2.MoveNext() && ComparerHelpers.Equals(comparer, e1.Current, e2.Current)))
                     {
                         return false;
                     }

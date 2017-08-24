@@ -18,6 +18,30 @@ namespace System.Collections.Generic
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Equals<T>(IEqualityComparer<T> comparer, T x, T y)
+        {
+            Debug.Assert(comparer != EqualityComparer<T>.Default);
+
+            if (IsWellKnownType<T>() && comparer == null)
+            {
+                return DefaultEqualsWellKnown(x, y);
+            }
+
+            return comparer.Equals(x, y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static IEqualityComparer<T> Normalize<T>(IEqualityComparer<T> comparer)
+        {
+            if (IsWellKnownType<T>() && comparer == EqualityComparer<T>.Default)
+            {
+                return null;
+            }
+
+            return comparer;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool DefaultEqualsWellKnown<T>(T x, T y)
         {
             Debug.Assert(IsWellKnownType<T>());
@@ -90,19 +114,6 @@ namespace System.Collections.Generic
 
             Debug.Fail($"{typeof(T)} is a well-known type, but we don't recognize it.");
             return default(bool);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool FastEquals<T>(this IEqualityComparer<T> equalityComparer, T x, T y)
-        {
-            Debug.Assert(equalityComparer != null);
-
-            if (IsWellKnownType<T>() && equalityComparer == EqualityComparer<T>.Default)
-            {
-                return DefaultEqualsWellKnown(x, y);
-            }
-
-            return equalityComparer.Equals(x, y);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
