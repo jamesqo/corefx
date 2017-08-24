@@ -30,7 +30,7 @@ namespace System.Collections.Generic
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool GetHashCode<T>(IEqualityComparer<T> comparer, T obj)
+        public static int GetHashCode<T>(IEqualityComparer<T> comparer, T obj)
         {
             Debug.Assert(obj != null);
 
