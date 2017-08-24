@@ -20,25 +20,31 @@ namespace System.Collections.Generic
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Equals<T>(IEqualityComparer<T> comparer, T x, T y)
         {
-            Debug.Assert(comparer != EqualityComparer<T>.Default);
-
-            if (IsWellKnownType<T>() && comparer == null)
+            if (IsWellKnownType<T>())
             {
-                return DefaultEqualsWellKnown(x, y);
+                Debug.Assert(comparer != EqualityComparer<T>.Default);
+                if (comparer == null)
+                {
+                    return DefaultEqualsWellKnown(x, y);
+                }
             }
 
+            Debug.Assert(comparer != null);
             return comparer.Equals(x, y);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IEqualityComparer<T> Normalize<T>(IEqualityComparer<T> comparer)
         {
-            if (IsWellKnownType<T>() && comparer == EqualityComparer<T>.Default)
+            var defaultComparer = EqualityComparer<T>.Default;
+            if (IsWellKnownType<T>())
             {
-                return null;
+                return comparer == defaultComparer ? null : comparer;
             }
-
-            return comparer;
+            else
+            {
+                return comparer ?? defaultComparer;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
