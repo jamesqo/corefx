@@ -112,7 +112,7 @@ namespace System.Collections.Generic
                 }
             }
 
-            Debug.Fail($"{typeof(T)} is a well-known type, but we don't recognize it.");
+            Debug.Fail($"{typeof(T)} should be a well-known type, but we don't recognize it.");
             return default(bool);
         }
 
