@@ -236,7 +236,7 @@ namespace System.Collections.Generic
                 {
                     do
                     {
-                        if (ComparerUtilities.DefaultEquals(node.item, value))
+                        if (ComparerHelpers.DefaultEquals(node.item, value))
                         {
                             return node;
                         }
@@ -271,7 +271,7 @@ namespace System.Collections.Generic
                 {
                     do
                     {
-                        if (ComparerUtilities.DefaultEquals(node.item, value))
+                        if (ComparerHelpers.DefaultEquals(node.item, value))
                         {
                             return node;
                         }

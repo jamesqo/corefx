@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace System.Collections.Generic
 {
-    internal static class ComparerUtilities
+    internal static class ComparerHelpers
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool DefaultEquals<T>(T x, T y)
