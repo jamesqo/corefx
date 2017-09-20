@@ -222,6 +222,7 @@ namespace System.Collections.Generic
                 return _builder.ToArray();
             }
 
+            Debug.Assert(Count > 0);
             var array = new T[Count];
             CopyTo(array, 0, array.Length);
             return array;

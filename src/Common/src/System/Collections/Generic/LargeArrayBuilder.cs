@@ -18,19 +18,31 @@ namespace System.Collections.Generic
         /// </summary>
         /// <param name="row">The index of the buffer to select.</param>
         /// <param name="column">The index within the buffer to select.</param>
-        internal CopyPosition(int row, int column)
+        /// <param name="endColumn">The length of the buffer.</param>
+        internal CopyPosition(int row, int column, int endColumn)
         {
             Debug.Assert(row >= 0);
-            Debug.Assert(column >= 0);
+            Debug.Assert(column >= 0 && column <= endColumn);
+            Debug.Assert(endColumn > 0);
 
-            Row = row;
-            Column = column;
+            if (column < endColumn)
+            {
+                Row = row;
+                Column = column;
+            }
+            else
+            {
+                // If the column is at the end of its row, normalize the representation
+                // by moving it to the start of the next row.
+                Row = row + 1;
+                Column = 0;
+            }
         }
 
         /// <summary>
         /// Represents a position at the start of a <see cref="LargeArrayBuilder{T}"/>.
         /// </summary>
-        public static CopyPosition Start => default(CopyPosition);
+        public static CopyPosition Start => default;
 
         /// <summary>
         /// The index of the buffer to select.
@@ -41,20 +53,6 @@ namespace System.Collections.Generic
         /// The index within the buffer to select.
         /// </summary>
         internal int Column { get; }
-
-        /// <summary>
-        /// If this position is at the end of the current buffer, returns the position
-        /// at the start of the next buffer. Otherwise, returns this position.
-        /// </summary>
-        /// <param name="endColumn">The length of the current buffer.</param>
-        public CopyPosition Normalize(int endColumn)
-        {
-            Debug.Assert(Column <= endColumn);
-
-            return Column == endColumn ?
-                new CopyPosition(Row + 1, 0) :
-                this;
-        }
 
         /// <summary>
         /// Gets a string suitable for display in the debugger.
@@ -236,23 +234,27 @@ namespace System.Collections.Generic
 
             if (count == 0)
             {
-                return new CopyPosition(row, column + copied).Normalize(buffer.Length);
+                return new CopyPosition(row, column + copied, buffer.Length);
             }
 
             do
             {
                 buffer = GetBuffer(++row);
                 copied = CopyToCore(buffer, 0);
-            } while (count > 0);
+            }
+            while (count > 0);
 
-            return new CopyPosition(row, copied).Normalize(buffer.Length);
+            return new CopyPosition(row, copied, buffer.Length);
 
             int CopyToCore(T[] sourceBuffer, int sourceIndex)
             {
+                Debug.Assert(count > 0);
                 Debug.Assert(sourceBuffer.Length > sourceIndex);
 
                 // Copy until we satisfy `count` or reach the end of the current buffer.
                 int copyCount = Math.Min(sourceBuffer.Length - sourceIndex, count);
+                Debug.Assert(copyCount > 0);
+
                 Array.Copy(sourceBuffer, sourceIndex, array, arrayIndex, copyCount);
 
                 arrayIndex += copyCount;
@@ -297,6 +299,7 @@ namespace System.Collections.Generic
                 return array;
             }
 
+            Debug.Assert(_count > 0);
             array = new T[_count];
             CopyTo(array, 0, _count);
             return array;
